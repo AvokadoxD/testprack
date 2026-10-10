@@ -1,0 +1,25 @@
+name: StrazhAC
+version: '${version}'
+main: ru.strazh.ac.StrazhPlugin
+api-version: '1.21'
+description: Серверный античит для Paper 1.21.11 (симуляция движения, транзакции, статистика боя, ловушки)
+authors: [Strazh]
+depend: [packetevents]
+softdepend: [floodgate, Geyser-Spigot, ViaVersion, Skript]
+commands:
+  strazh:
+    description: Управление античитом StrazhAC
+    usage: /strazh help
+    aliases: [ac, strazhac]
+permissions:
+  strazh.admin:
+    description: Полный доступ ко всем командам
+    default: op
+    children:
+      strazh.alerts: true
+  strazh.alerts:
+    description: Получение алертов о нарушениях
+    default: op
+  strazh.bypass:
+    description: Полный обход всех проверок (не выдавайте игрокам!)
+    default: false

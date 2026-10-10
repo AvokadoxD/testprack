@@ -3,3 +3,5 @@ __pycache__/
 *.sqlite3
 prezentaciya/preview/
 node_modules/
+anticheat/build/
+anticheat/.gradle/

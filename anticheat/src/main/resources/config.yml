@@ -1,0 +1,106 @@
+# ================================================================
+#  StrazhAC — серверный античит для Paper 1.21.11
+#  Требуется плагин PacketEvents 2.14.0+ (packetevents-spigot).
+#
+#  Параметры отдельных проверок (раздел checks) дописываются в этот
+#  файл автоматически при первом запуске — их можно менять и делать
+#  /strazh reload.
+# ================================================================
+
+prefix: "&8[&cСтраж&8] "
+
+alerts:
+  # Формат алерта. Плейсхолдеры: {prefix} {player} {check} {category} {vl} {details}
+  format: "{prefix}&f{player} &7провалил &c{check} &8(&7{category}&8) &7x&c{vl}"
+  # Подсказка при наведении. {check} {description} {details} {ping} {tps} {brand} {version} {vl}
+  hover: "&7Проверка: &f{check}\n&7Описание: &f{description}\n&7Детали: &f{details}\n&7Пинг: &f{ping} мс &7| TPS: &f{tps}\n&7Клиент: &f{brand} &7({version})\n&eНажмите, чтобы телепортироваться"
+  # Включать алерты автоматически для игроков с правом strazh.alerts
+  auto-enable: true
+  # Дублировать алерты в консоль
+  console: true
+  # Не чаще одного алерта по одной проверке на игрока за N мс (0 — без ограничения)
+  cooldown-ms: 750
+  # Discord webhook URL для алертов (пусто — выключено)
+  discord-webhook: ""
+
+messages:
+  kick: "&cВы были отключены античитом.\n&7Причина: &f{check}"
+
+punishments:
+  # Команды наказания по умолчанию. Плейсхолдеры: {player} {uuid} {check} {check_id} {category} {vl}
+  # Встроенная команда "strazh kick" кикает с сообщением из messages.kick.
+  default:
+    - "strazh kick {player} {check}"
+  # Можно задать свои команды для категории (combat, movement, world, player, packet, misc)
+  # или прямо у проверки (checks.<id>.commands).
+  # combat:
+  #   - "tempban {player} 7d Читы ({check})"
+  # Не наказывать игроков, зашедших меньше N секунд назад (только алерты)
+  min-playtime-seconds: 0
+  # Сбрасывать VL проверки после наказания
+  reset-vl-after-punish: true
+
+logging:
+  enabled: true
+  # Сколько дней хранить логи в plugins/StrazhAC/logs
+  keep-days: 14
+
+transactions:
+  # Отключать игрока, если он не отвечает на транзакции дольше N секунд
+  timeout-seconds: 30
+  # Удержание ответов на транзакции дольше N мс при продолжающемся движении — признак дизейблера/фейк-лага
+  max-pong-hold-ms: 2000
+  # Сколько клиентских тиков подряд допускается без ответа на транзакции
+  max-ticks-without-pong: 40
+
+setback:
+  # Откатывать игрока на последнюю честную позицию при нарушении движения
+  enabled: true
+  # Максимум откатов в минуту (дальше — только флаги)
+  max-per-minute: 60
+
+mitigation:
+  # При подозрении в бою часть ударов читера тихо отменяется (до бана)
+  enabled: true
+  # Базовая вероятность отмены удара (растёт с уровнем подозрения)
+  cancel-chance: 0.5
+
+exemptions:
+  # Право полного обхода (не выдавайте игрокам)
+  bypass-permission: strazh.bypass
+  # Тэг скорборда для полного исключения (удобно из Skript: add "strazh_exempt" to scoreboard tags of player)
+  scoreboard-tag: strazh_exempt
+  # Разрешить тэги по категориям/проверкам: strazh_exempt_movement, strazh_exempt_combat, strazh_exempt_reach_a ...
+  category-tags: true
+  # Исключение проверок движения после входа (тики)
+  join-ticks: 60
+  bedrock:
+    # Игроки Bedrock (Geyser/Floodgate) — другая физика и управление
+    enabled: true
+    # true — по движению и бою для Bedrock только записи в лог, без алертов и наказаний
+    soft-mode: true
+
+vehicles:
+  # Тэги скорборда «сидений» кастомного транспорта (Skript-машины, мопеды).
+  # Пока игрок едет на таком транспорте, проверки движения и аима не работают.
+  # Также автоматически распознаются тэги car_id_*, car_seat_*, car_part_*, moped_id_*.
+  seat-tags:
+    - car_seat
+    - car_main
+    - moped_main
+  # Считать транспортом-исключением item_display/block_display/armor_stand/interaction/marker
+  exempt-display-vehicles: true
+  # Льготный период после высадки (тики), удваивается для кастомного транспорта
+  dismount-grace-ticks: 40
+  # Льготный период после телепорта, связанного с транспортом (тики)
+  teleport-grace-ticks: 10
+
+honeypot:
+  # Ловушки для аур: невидимые для честного игрока сущности, существующие только в пакетах
+  enabled: true
+
+# Отладочный вывод в консоль
+debug: false
+
+# Настройки проверок. Дописываются автоматически.
+checks: {}
