@@ -84,6 +84,13 @@ public final class TransactionManager {
         this.data = data;
     }
 
+    /** Для тестов: создаёт id следующего пинга без отправки. */
+    int createIdForTest() {
+        synchronized (createLock) {
+            return newId(++createdSeq);
+        }
+    }
+
     /** Отправляет новый пинг. Можно вызывать из любого потока. */
     public void send() {
         User user = data.user();
