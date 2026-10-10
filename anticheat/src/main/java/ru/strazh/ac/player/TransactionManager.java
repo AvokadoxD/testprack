@@ -64,6 +64,11 @@ public final class TransactionManager {
     private final DoubleWindow rttLongWindow = new DoubleWindow(400);
     private volatile double baselineRttMs = -1;
     private int baselineCounter;
+    /** RTT по данным ядра ОС (TCP_INFO), мс; -1 — недоступно. */
+    private volatile double kernelRttMs = -1;
+    private final DoubleWindow kernelWindow = new DoubleWindow(40);
+    /** Разница RTT транзакций и ядра (сглаженная), мс. */
+    private volatile double pongOverKernelMs = -1;
     private volatile double lastRttMs;
     private volatile double smoothedRttMs = -1;
     private volatile long oldestInFlightNanos;
@@ -141,6 +146,14 @@ public final class TransactionManager {
                 lastRttMs = rtt;
                 rttWindow.add(rtt);
                 rttLongWindow.add(rtt);
+                if (baselineCounter % 5 == 0) {
+                    double k = ru.strazh.ac.util.NetUtil.kernelRttMs(data.user() == null ? null : data.user().getChannel());
+                    if (k >= 0) {
+                        kernelRttMs = k;
+                        kernelWindow.add(rtt - k);
+                        pongOverKernelMs = kernelWindow.mean();
+                    }
+                }
                 if (++baselineCounter % 20 == 0 || baselineRttMs < 0) {
                     // 10-й перцентиль за ~20 секунд: устойчив к искусственному раздуванию пинга в бою.
                     double[] arr = rttLongWindow.toArray();
@@ -228,6 +241,20 @@ public final class TransactionManager {
     /** Сглаженный RTT по транзакциям, мс (или -1, если ещё нет данных). */
     public double smoothedRttMs() {
         return smoothedRttMs;
+    }
+
+    /** RTT по ядру ОС, мс (-1 — недоступно: не epoll или нет данных). */
+    public double kernelRttMs() {
+        return kernelRttMs;
+    }
+
+    /**
+     * Насколько ответы на транзакции в среднем медленнее, чем RTT по ядру, мс.
+     * У ванильного клиента это ~0–60 мс (ожидание клиентского тика).
+     * Систематически больше — клиент придерживает ответы (Blink/FakeLag/BackTrack).
+     */
+    public double pongOverKernelMs() {
+        return pongOverKernelMs;
     }
 
     /** Базовый RTT (низкий перцентиль за длинное окно), мс; -1 — нет данных. */
