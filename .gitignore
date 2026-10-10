@@ -5,3 +5,4 @@ prezentaciya/preview/
 node_modules/
 anticheat/build/
 anticheat/.gradle/
+.claude/
