@@ -1,0 +1,434 @@
+<title>Яблочный дозор — прототип</title>
+<meta name="description" content="Кликабельный прототип «Яблочного дозора»: бот садовода, оценка фото, карта переработчика, сборка рейса, закупочный акт и калькулятор рейса. Работает без интернета.">
+<style>
+/*@FONTS@*/
+
+/* Рабочий экран: слева телефон с ботом садовода, справа кабинет переработчика. Тёмная тема как у презентации. */
+:root{
+  --bg:#0b0d0a; --panel:#121510; --panel-2:#181c15; --line:rgba(239,233,220,.10); --line-2:rgba(239,233,220,.20);
+  --paper:#efe9dc; --soft:#cfc9ba; --mute:#a3a394; --dim:#77786d;
+  --red:#f0433a; --orange:#f7843c; --amber:#f6c445; --leaf:#86d66b; --leaf-d:#3d9f4c;
+  --fire:linear-gradient(92deg,#f0433a,#f7843c 52%,#f6c445);
+  --grow:linear-gradient(92deg,#3d9f4c,#86d66b 48%,#d6ef7c);
+  --display:'Unbounded','Onest',system-ui,sans-serif;
+  --body:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--paper);font:400 15px/1.45 var(--body);-webkit-font-smoothing:antialiased;
+  background-image:radial-gradient(900px 600px at 95% -10%,rgba(240,67,58,.12),transparent 60%),radial-gradient(800px 600px at -10% 110%,rgba(61,159,76,.10),transparent 60%)}
+.wrap{max-width:1440px;margin:0 auto;padding-inline:20px;padding-block:18px 40px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding-block:6px 18px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand .logo{width:44px;height:44px;border-radius:12px;background:var(--fire);display:grid;place-items:center;font:900 16px/1 var(--display);color:#1a0d08}
+.brand h1{margin:0;font:900 22px/1.1 var(--display);text-transform:uppercase;letter-spacing:-.01em}
+.brand p{margin:2px 0 0;font:500 12px/1.2 var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.demo-badge{font:600 12px/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--amber);border:1px dashed rgba(246,196,69,.7);border-radius:999px;padding:8px 14px;background:rgba(246,196,69,.06)}
+.btn{appearance:none;border:1px solid var(--line-2);background:var(--panel-2);color:var(--paper);border-radius:12px;padding:10px 14px;font:600 14px/1.2 var(--body);cursor:pointer;transition:background .2s,border-color .2s,transform .1s}
+.btn:hover{border-color:rgba(239,233,220,.4)}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.btn.primary{background:var(--grow);color:#0d1a0b;border-color:transparent}
+.btn.fire{background:var(--fire);color:#1a0d08;border-color:transparent}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent}
+
+.grid{display:grid;grid-template-columns:400px minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- телефон ---------- */
+.phone{width:100%;max-width:400px;margin-inline:auto;border-radius:44px;background:#050605;border:2px solid rgba(239,233,220,.18);padding:12px;box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 0 0 5px #121411;position:relative}
+@media (min-width:981px){.phone{position:sticky;top:calc(12px + env(safe-area-inset-top,0px))}}
+.screen{border-radius:32px;overflow:hidden;background:#0e1621;display:flex;flex-direction:column;height:min(760px,calc(100vh - 80px));min-height:540px}
+@media (max-width:980px){.screen{height:620px}}
+.tg-top{background:#17212b;padding:14px 16px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.tg-ava{width:40px;height:40px;border-radius:50%;background:var(--fire);display:grid;place-items:center;font:900 14px/1 var(--display);color:#1a0d08;flex:none}
+.tg-top b{font:600 16px/1.2 var(--body);display:block}
+.tg-top span{font:400 13px/1.2 var(--body);color:#7d8b99}
+.chat{flex:1;overflow-y:auto;padding:14px 10px;display:flex;flex-direction:column;gap:8px;scroll-behavior:smooth}
+.msg{max-width:88%;padding:9px 12px;border-radius:16px;font:400 14.5px/1.42 var(--body);color:#e9eef3;animation:msgIn .35s cubic-bezier(.2,.8,.1,1) both;overflow-wrap:anywhere}
+.msg.in{background:#182533;border-bottom-left-radius:5px;align-self:flex-start}
+.msg.out{background:#2b5278;border-bottom-right-radius:5px;align-self:flex-end}
+.msg b{color:#fff}
+.msg .note{display:block;margin-top:6px;font-size:12px;color:#8fa2b5}
+.msg img,.msg canvas{display:block;max-width:100%;border-radius:10px;margin-bottom:6px}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}}
+.typing{align-self:flex-start;background:#182533;border-radius:16px;padding:12px 14px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:#7d8b99;animation:dot 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{50%{opacity:.25;transform:translateY(-2px)}}
+.kb{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 10px 12px;background:#0e1621;border-top:1px solid rgba(255,255,255,.05)}
+.kb button{appearance:none;border:0;background:#203245;color:#e3ecf5;border-radius:10px;padding:11px 8px;font:500 13.5px/1.25 var(--body);cursor:pointer;text-align:center}
+.kb button:hover{background:#2a4057}
+.kb button.wide{grid-column:1/-1}
+.kb button:focus-visible{outline:2px solid var(--amber)}
+.bars{margin:8px 0 4px;display:flex;flex-direction:column;gap:5px}
+.bar{display:grid;grid-template-columns:96px 1fr 38px;gap:8px;align-items:center;font:500 12px/1.2 var(--mono)}
+.bar .t{height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar .t i{display:block;height:100%;border-radius:4px}
+.qrs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.qrs figure{margin:0;background:#efe9dc;border-radius:8px;padding:5px;color:#0b0d0a;text-align:center;font:600 10px/1.2 var(--mono)}
+.qrs svg{display:block;width:100%;height:auto}
+.file{display:none}
+
+/* ---------- кабинет ---------- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px}
+.card h2{margin:0;font:800 17px/1.2 var(--display);text-transform:uppercase;letter-spacing:.01em}
+.card .sub{font:600 11.5px/1.3 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
+.dash{display:flex;flex-direction:column;gap:16px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px 16px;min-width:0}
+.kpi .v{font:900 26px/1.05 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi .l{font:400 13px/1.3 var(--body);color:var(--mute);margin-top:6px}
+.mapcard{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+@media (max-width:1180px){.mapcard{grid-template-columns:minmax(0,1fr)}}
+.map{position:relative;border-radius:16px;background:#0e110d;border:1px solid var(--line);overflow:hidden;aspect-ratio:600/470;max-width:100%}
+.map svg{display:block;width:100%;height:100%}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font:500 12px/1.2 var(--body);color:var(--soft)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.clusters{display:flex;flex-direction:column;gap:12px}
+.cl{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:var(--panel-2)}
+.cl.ready{border-color:rgba(134,214,107,.55);background:rgba(134,214,107,.06)}
+.cl .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cl b{font:800 15px/1.2 var(--display);text-transform:uppercase}
+.cl .kg{font:700 14px/1.2 var(--mono);font-variant-numeric:tabular-nums}
+.prog{height:8px;border-radius:4px;background:rgba(255,255,255,.07);margin:9px 0 8px;position:relative;overflow:hidden}
+.prog i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--grow);transition:width .8s cubic-bezier(.2,.8,.1,1)}
+.prog::after{content:"";position:absolute;left:66.6%;top:-2px;bottom:-2px;width:2px;background:var(--amber)}
+.cl .meta{font:400 12.5px/1.35 var(--body);color:var(--mute);margin-bottom:9px}
+.run{display:none}
+.run.on{display:block;animation:msgIn .4s both}
+.runhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+@media (max-width:700px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.stat .v{font:800 19px/1.1 var(--display);font-variant-numeric:tabular-nums}
+.stat .l{font:400 12px/1.3 var(--body);color:var(--mute);margin-top:4px}
+.tblwrap{overflow-x:auto}
+table.act{width:100%;border-collapse:collapse;font:400 13.5px/1.35 var(--body);min-width:560px}
+.act th{font:600 11px/1.2 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);text-align:left;padding:8px 8px;border-bottom:1px solid var(--line-2)}
+.act td{padding:8px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.act .r{text-align:right}
+.act tfoot td{font-weight:700;color:var(--paper);border-bottom:0}
+.calc{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px}
+@media (max-width:700px){.calc{grid-template-columns:minmax(0,1fr)}}
+.calc label{display:flex;justify-content:space-between;font:500 13.5px/1.3 var(--body);color:var(--soft)}
+.calc label b{font:700 13.5px/1.3 var(--mono);color:var(--paper)}
+.calc input[type=range]{width:100%;accent-color:#86d66b;margin-top:8px}
+.calc-out{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+@media (max-width:700px){.calc-out{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.ok{color:var(--leaf)}.bad{color:#ff8a7f}
+.foot{margin-top:24px;font:400 12.5px/1.5 var(--body);color:var(--dim)}
+.foot b{color:var(--mute)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:#1d2419;border:1px solid rgba(134,214,107,.5);color:var(--paper);padding:12px 18px;border-radius:12px;font:500 14px/1.3 var(--body);transition:opacity .3s,transform .3s;pointer-events:none;z-index:9;max-width:calc(100vw - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.draw{stroke-dasharray:1;stroke-dashoffset:1;animation:draw 2.2s cubic-bezier(.2,.8,.1,1) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+.pulse{animation:pulse 1.6s ease-out 2}
+@keyframes pulse{0%{r:6}50%{r:16;opacity:.4}100%{r:6;opacity:1}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><div class="logo">ЯД</div><div><h1>Яблочный дозор</h1><p>Прототип · команда «ЗОЖ-дозор» · Псковская область</p></div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <span class="demo-badge">Демо: заявки — пример данных</span>
+      <button class="btn ghost" id="resetAll" type="button">Начать сценарий заново</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- Телефон садовода -->
+    <div class="phone" aria-label="Telegram-бот садовода">
+      <div class="screen">
+        <div class="tg-top"><div class="tg-ava">ЯД</div><div><b>Яблочный дозор</b><span id="botStatus">бот</span></div></div>
+        <div class="chat" id="chat" aria-live="polite"></div>
+        <div class="kb" id="kb"></div>
+      </div>
+      <input class="file" type="file" id="photoInput" accept="image/*">
+    </div>
+
+    <!-- Кабинет переработчика -->
+    <main class="dash">
+      <div class="kpis">
+        <div class="kpi"><div class="v" id="kTotal">0 кг</div><div class="l">яблок в заявках</div></div>
+        <div class="kpi"><div class="v" id="kOffers">0</div><div class="l">заявок садоводов</div></div>
+        <div class="kpi"><div class="v" id="kTech">0%</div><div class="l">технического и столового</div></div>
+        <div class="kpi"><div class="v" id="kRuns" style="color:var(--amber)">0</div><div class="l">рейсов готово к сбору</div></div>
+      </div>
+
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <h2>Карта переработчика</h2><span class="sub">схема северо-запада Псковской обл. · не в масштабе</span>
+        </div>
+        <div class="mapcard">
+          <div>
+            <div class="map"><svg id="map" viewBox="0 0 600 470" role="img" aria-label="Схема заявок, кластеров и маршрута"></svg></div>
+            <div class="legend">
+              <span><i style="background:#86d66b"></i>столовое</span><span><i style="background:#f6c445"></i>техническое</span><span><i style="background:#f7843c"></i>падалица</span>
+              <span><i style="background:#f0433a;border-radius:3px"></i>переработчик</span><span><i style="background:transparent;border:1px dashed #f6c445"></i>кластер, радиус 10 км</span>
+            </div>
+          </div>
+          <div class="clusters" id="clusters"></div>
+        </div>
+      </section>
+
+      <section class="card run" id="run">
+        <div class="runhead"><h2 id="runTitle">Рейс</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="acceptBtn" type="button">Принять рейс на приёмке</button></div></div>
+        <div class="stats" id="runStats"></div>
+        <div id="actBox"></div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+          <h2>Калькулятор рейса</h2><span class="sub">переработчик платит 22 ₽/кг · «Газель» до 1,5 т</span>
+        </div>
+        <div class="calc">
+          <div><label for="cPrice">Цена садоводу <b id="cPriceV"></b></label><input type="range" id="cPrice" min="6" max="16" step="1" value="10"></div>
+          <div><label for="cLoad">Загрузка рейса <b id="cLoadV"></b></label><input type="range" id="cLoad" min="300" max="1500" step="50" value="1500"></div>
+          <div><label for="cHours">Часы аренды <b id="cHoursV"></b></label><input type="range" id="cHours" min="2" max="8" step="1" value="4"></div>
+          <div><label for="cKm">Пробег по трассе <b id="cKmV"></b></label><input type="range" id="cKm" min="20" max="200" step="10" value="80"></div>
+        </div>
+        <div class="calc-out">
+          <div class="stat"><div class="v" id="oRev"></div><div class="l">наша выручка за рейс</div></div>
+          <div class="stat"><div class="v" id="oTruck"></div><div class="l">«Газель» (1 200 ₽/ч + 35 ₽/км)</div></div>
+          <div class="stat"><div class="v" id="oMargin"></div><div class="l">маржа рейса</div></div>
+          <div class="stat"><div class="v" id="oBreak"></div><div class="l">рейс окупается с</div></div>
+        </div>
+      </section>
+
+      <p class="foot"><b>Как устроен прототип.</b> Заявки на карте — пример данных для показа сценария, не реальные садоводы. Оценка фото в прототипе — простая эвристика по цвету пикселей (доля бурых участков). В MVP класс сначала ставит человек, затем обученная нейросеть-классификатор. Вес на приёмке в демо смоделирован. Тарифы «Газели» — Яндекс Услуги, Псков (обращение 10.10.2026). Прототип работает без интернета — это план Б для защиты.</p>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<template id="qrTpl"><div class="qrs"><figure>@@QR1@@мешок 1/3</figure><figure>@@QR2@@мешок 2/3</figure><figure>@@QR3@@мешок 3/3</figure></div></template>
+
+<script>
+(function(){
+  'use strict';
+  var PRICE_PROC=22, PRICE_GARDEN=10, MIN_RUN=1000, TRUCK=1500, RATE_H=1200, RATE_KM=35;
+  var fmt=function(n){return Math.round(n).toLocaleString('ru-RU')};
+  var COLORS={'столовое':'#86d66b','техническое':'#f6c445','падалица':'#f7843c'};
+
+  /* ---------- данные: пример заявок ---------- */
+  var CLUSTERS=[
+    {id:'izb',name:'Изборск',c:[57.705,27.86],lab:'below'},
+    {id:'pech',name:'Печоры',c:[57.81,27.61],lab:'above'},
+    {id:'palk',name:'Палкино',c:[57.53,28.0],lab:'below'}
+  ];
+  var VILLAGES={'Изборск':[57.712,27.87,'izb'],'Малы':[57.735,27.95,'izb'],'Залавье':[57.69,27.8,'izb'],'Печоры':[57.815,27.6,'pech'],'Палкино':[57.535,28.01,'palk']};
+  var PROCESSOR=[57.715,27.915];
+  function seed(){
+    return [
+      {id:1,cl:'izb',ll:[57.745,27.79],kg:120,cls:'техническое',who:'Садовод №1',v:'Изборск'},
+      {id:2,cl:'izb',ll:[57.69,27.93],kg:180,cls:'техническое',who:'Садовод №2',v:'Изборск'},
+      {id:3,cl:'izb',ll:[57.72,27.98],kg:90,cls:'столовое',who:'Садовод №3',v:'Малы'},
+      {id:4,cl:'izb',ll:[57.66,27.86],kg:210,cls:'падалица',who:'Садовод №4',v:'Залавье'},
+      {id:5,cl:'izb',ll:[57.735,27.9],kg:140,cls:'техническое',who:'Садовод №5',v:'Изборск'},
+      {id:6,cl:'izb',ll:[57.675,27.78],kg:120,cls:'техническое',who:'Садовод №6',v:'Залавье'},
+      {id:7,cl:'pech',ll:[57.83,27.63],kg:260,cls:'техническое',who:'Садовод №7',v:'Печоры'},
+      {id:8,cl:'pech',ll:[57.79,27.57],kg:200,cls:'падалица',who:'Садовод №8',v:'Печоры'},
+      {id:9,cl:'pech',ll:[57.8,27.66],kg:180,cls:'столовое',who:'Садовод №9',v:'Печоры'},
+      {id:10,cl:'palk',ll:[57.54,27.97],kg:150,cls:'техническое',who:'Садовод №10',v:'Палкино'},
+      {id:11,cl:'palk',ll:[57.52,28.04],kg:160,cls:'падалица',who:'Садовод №11',v:'Палкино'}
+    ];
+  }
+  var offers=seed(), runCluster=null, nextId=12;
+
+  /* ---------- проекция схемы ---------- */
+  var LAT0=57.98, LON0=27.33, S=800;
+  function P(ll){return [ (ll[1]-LON0)*0.545*S, (LAT0-ll[0])*S ];}
+  function km(a,b){var R=6371,toR=Math.PI/180,dLa=(b[0]-a[0])*toR,dLo=(b[1]-a[1])*toR;var h=Math.sin(dLa/2)*Math.sin(dLa/2)+Math.cos(a[0]*toR)*Math.cos(b[0]*toR)*Math.sin(dLo/2)*Math.sin(dLo/2);return 2*R*Math.asin(Math.sqrt(h));}
+  var OUT=[[57.98,27.55],[57.95,27.65],[57.8,27.45],[57.55,27.35],[57.45,27.45]];
+
+  function sum(list){return list.reduce(function(a,o){return a+o.kg},0)}
+  function byCl(id){return offers.filter(function(o){return o.cl===id})}
+
+  /* ---------- карта ---------- */
+  var svg=document.getElementById('map');
+  function drawMap(route){
+    var g='<defs><pattern id="gr" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="rgba(239,233,220,.05)"/></pattern></defs><rect width="600" height="470" fill="url(#gr)"/>';
+    var border=OUT.map(function(q){var r=P(q);return r[0].toFixed(1)+','+r[1].toFixed(1)}).join(' ');
+    g+='<polyline points="'+border+'" fill="none" stroke="rgba(134,214,107,.45)" stroke-width="1.5" stroke-dasharray="6 5"/>';
+    var lb=P([57.62,27.38]);g+='<text x="'+(lb[0]+4)+'" y="'+lb[1]+'" fill="#77786d" font-family="JetBrains Mono" font-size="11" letter-spacing="1.5">ГРАНИЦА</text>';
+    CLUSTERS.forEach(function(c){var r=P(c.c),kg=sum(byCl(c.id)),ready=kg>=MIN_RUN;
+      g+='<circle cx="'+r[0]+'" cy="'+r[1]+'" r="'+(10*0.009*S)+'" fill="'+(ready?'rgba(134,214,107,.07)':'rgba(246,196,69,.05)')+'" stroke="'+(ready?'rgba(134,214,107,.7)':'rgba(246,196,69,.45)')+'" stroke-dasharray="5 6"/>';
+      var ly=c.lab==='below'?(r[1]+10*0.009*S+18):(r[1]-10*0.009*S-8);
+      g+='<text x="'+r[0]+'" y="'+ly+'" text-anchor="middle" fill="'+(ready?'#86d66b':'#f6c445')+'" font-family="JetBrains Mono" font-size="12" letter-spacing="1.5">'+c.name.toUpperCase()+' · '+fmt(kg)+' КГ</text>';});
+    [['Псков',[57.82,28.33]],['Печоры',[57.81,27.61]],['Изборск',[57.71,27.86]],['Палкино',[57.53,28.0]]].forEach(function(t){var r=P(t[1]);g+='<circle cx="'+r[0]+'" cy="'+r[1]+'" r="3" fill="#efe9dc"/><text x="'+(r[0]+7)+'" y="'+(r[1]+4)+'" fill="#cfc9ba" font-family="Onest" font-size="13">'+t[0]+'</text>';});
+    if(route){var pts=route.map(function(q){var r=P(q);return r[0].toFixed(1)+','+r[1].toFixed(1)}).join(' ');g+='<polyline class="draw" pathLength="1" points="'+pts+'" fill="none" stroke="#f7843c" stroke-width="2.6" stroke-linejoin="round"/>';}
+    offers.forEach(function(o){var r=P(o.ll),rad=4+Math.sqrt(o.kg)/3.2;g+='<circle '+(o.fresh?'class="pulse" ':'')+'cx="'+r[0].toFixed(1)+'" cy="'+r[1].toFixed(1)+'" r="'+rad.toFixed(1)+'" fill="'+COLORS[o.cls]+'" fill-opacity=".9" stroke="#0b0d0a" stroke-width="2"><title>'+o.who+': '+o.kg+' кг, '+o.cls+'</title></circle>';});
+    var f=P(PROCESSOR);g+='<rect x="'+(f[0]-9)+'" y="'+(f[1]-9)+'" width="18" height="18" rx="4" fill="#f0433a" stroke="#0b0d0a" stroke-width="2"/><text x="'+(f[0]+13)+'" y="'+(f[1]+22)+'" fill="#efe9dc" font-family="Onest" font-weight="600" font-size="13">переработчик</text>';
+    svg.innerHTML=g;
+  }
+
+  /* ---------- кластеры и KPI ---------- */
+  var clBox=document.getElementById('clusters');
+  function renderDash(route){
+    var total=sum(offers),good=sum(offers.filter(function(o){return o.cls!=='падалица'}));
+    document.getElementById('kTotal').textContent=fmt(total)+' кг';
+    document.getElementById('kOffers').textContent=offers.length;
+    document.getElementById('kTech').textContent=total?Math.round(good/total*100)+'%':'0%';
+    var readyN=0,h='';
+    CLUSTERS.forEach(function(c){var list=byCl(c.id),kg=sum(list),ready=kg>=MIN_RUN;if(ready)readyN++;
+      var pct=Math.min(100,kg/TRUCK*100);
+      h+='<div class="cl'+(ready?' ready':'')+'"><div class="row"><b>'+c.name+'</b><span class="kg">'+fmt(kg)+' / 1 500 кг</span></div><div class="prog"><i style="width:'+pct+'%"></i></div>'+
+        '<div class="meta">'+list.length+' заявок · '+(ready?'рейс можно собирать':'рейс от 1 000 кг, не хватает '+fmt(MIN_RUN-kg)+' кг')+'</div>'+
+        '<button class="btn '+(ready?'fire':'')+'" type="button" data-run="'+c.id+'" '+(ready?'':'disabled')+'>Собрать рейс</button></div>';});
+    clBox.innerHTML=h;
+    document.getElementById('kRuns').textContent=readyN;
+    drawMap(route);
+  }
+  clBox.addEventListener('click',function(e){var b=e.target.closest('[data-run]');if(b&&!b.disabled)buildRun(b.dataset.run);});
+
+  /* ---------- рейс: маршрут, экономика, акт ---------- */
+  function buildRun(id){
+    var list=byCl(id).slice(),cur=PROCESSOR,route=[PROCESSOR],dist=0;
+    while(list.length){var bi=0,bd=1e9;list.forEach(function(o,i){var d=km(cur,o.ll);if(d<bd){bd=d;bi=i}});dist+=bd;cur=list[bi].ll;route.push(cur);list.splice(bi,1);}
+    dist+=km(cur,PROCESSOR);route.push(PROCESSOR);
+    var road=dist*1.3, stops=byCl(id).length, hours=Math.max(2,Math.ceil(0.5+stops*10/60+road/40));
+    var kg=Math.min(TRUCK,sum(byCl(id))), truck=hours*RATE_H+Math.round(road)*RATE_KM;
+    runCluster={id:id,road:road,hours:hours,truck:truck,kg:kg};
+    var c=CLUSTERS.filter(function(x){return x.id===id})[0];
+    document.getElementById('runTitle').textContent='Рейс · кластер «'+c.name+'» · четверг, 10:00';
+    document.getElementById('runStats').innerHTML=
+      st(fmt(kg)+' кг','в рейсе, '+stops+' точек')+st(Math.round(road)+' км','маршрут, ≈ '+hours+' ч')+
+      st(fmt(truck)+' ₽','«Газель»: '+hours+' ч × 1 200 + '+Math.round(road)+' км × 35')+st('<span class="ok">'+fmt(kg*(PRICE_PROC-PRICE_GARDEN)-truck)+' ₽</span>','маржа рейса по оценке');
+    document.getElementById('actBox').innerHTML='<p style="margin:0;color:var(--mute);font-size:13.5px">Водитель получил маршрут в навигатор. После приёмки здесь появится закупочный акт и выплаты садоводам.</p>';
+    var run=document.getElementById('run');run.classList.add('on');document.getElementById('acceptBtn').disabled=false;
+    renderDash(route);
+    run.scrollIntoView({behavior:'smooth',block:'nearest'});
+    toast('Маршрут построен: '+stops+' точек, '+Math.round(road)+' км');
+  }
+  function st(v,l){return '<div class="stat"><div class="v">'+v+'</div><div class="l">'+l+'</div></div>';}
+  document.getElementById('acceptBtn').addEventListener('click',function(){
+    if(!runCluster)return;
+    var list=byCl(runCluster.id),rows='',tw=0,tp=0;
+    list.forEach(function(o,i){var w=Math.round(o.kg*(0.9+((o.id*37)%15)/100));tw+=w;var pay=w*PRICE_GARDEN;tp+=pay;
+      rows+='<tr><td>'+(i+1)+'</td><td>'+o.who+'</td><td>'+o.v+'</td><td>'+o.cls+'</td><td class="r">'+fmt(w)+'</td><td class="r">'+PRICE_GARDEN+'</td><td class="r">'+fmt(pay)+'</td></tr>';});
+    var proc=tw*PRICE_PROC, ours=tw*(PRICE_PROC-PRICE_GARDEN), margin=ours-runCluster.truck;
+    document.getElementById('actBox').innerHTML=
+      '<div class="sub" style="margin-bottom:8px">Закупочный акт (по форме ОП-5) · черновик · вес приёмки смоделирован</div>'+
+      '<div class="tblwrap"><table class="act"><thead><tr><th>№</th><th>Продавец</th><th>Пункт</th><th>Класс</th><th class="r">Вес, кг</th><th class="r">₽/кг</th><th class="r">Сумма, ₽</th></tr></thead><tbody>'+rows+
+      '</tbody><tfoot><tr><td></td><td colspan="3">Итого садоводам · выплаты по СБП: '+list.length+'</td><td class="r">'+fmt(tw)+'</td><td></td><td class="r">'+fmt(tp)+'</td></tr></tfoot></table></div>'+
+      '<div class="stats" style="margin:14px 0 0">'+st(fmt(proc)+' ₽','переработчик платит, 22 ₽/кг')+st(fmt(ours)+' ₽','наша выручка, 12 ₽/кг')+st('−'+fmt(runCluster.truck)+' ₽','«Газель»')+st('<span class="'+(margin>0?'ok':'bad')+'">'+fmt(margin)+' ₽</span>','маржа рейса')+'</div>';
+    document.getElementById('acceptBtn').disabled=true;
+    if(list.some(function(o){return o.mine})) botSay('✅ Приёмка: ваши яблоки взвешены. Перевод по СБП отправлен. Спасибо, что не дали урожаю сгнить!');
+    toast('Акт сформирован, выплаты: '+list.length);
+  });
+
+  /* ---------- калькулятор ---------- */
+  function calc(){
+    var g=+cPrice.value,l=+cLoad.value,h=+cHours.value,k=+cKm.value;
+    var rev=l*(PRICE_PROC-g),truck=h*RATE_H+k*RATE_KM,m=rev-truck,be=PRICE_PROC-g>0?Math.ceil(truck/(PRICE_PROC-g)):Infinity;
+    cPriceV.textContent=g+' ₽/кг';cLoadV.textContent=fmt(l)+' кг';cHoursV.textContent=h+' ч';cKmV.textContent=k+' км';
+    oRev.textContent=fmt(rev)+' ₽';oTruck.textContent=fmt(truck)+' ₽';
+    oMargin.innerHTML='<span class="'+(m>=0?'ok':'bad')+'">'+fmt(m)+' ₽</span>';
+    oBreak.innerHTML=be>TRUCK?'<span class="bad">не окупается</span>':fmt(be)+' кг';
+  }
+  var cPrice=document.getElementById('cPrice'),cLoad=document.getElementById('cLoad'),cHours=document.getElementById('cHours'),cKm=document.getElementById('cKm');
+  var cPriceV=document.getElementById('cPriceV'),cLoadV=document.getElementById('cLoadV'),cHoursV=document.getElementById('cHoursV'),cKmV=document.getElementById('cKmV');
+  var oRev=document.getElementById('oRev'),oTruck=document.getElementById('oTruck'),oMargin=document.getElementById('oMargin'),oBreak=document.getElementById('oBreak');
+  [cPrice,cLoad,cHours,cKm].forEach(function(i){i.addEventListener('input',calc)});
+
+  /* ---------- бот ---------- */
+  var chat=document.getElementById('chat'),kb=document.getElementById('kb'),photoInput=document.getElementById('photoInput');
+  var draft={};
+  function add(html,cls){var d=document.createElement('div');d.className='msg '+cls;d.innerHTML=html;chat.appendChild(d);chat.scrollTop=chat.scrollHeight;return d;}
+  function me(html){return add(html,'out')}
+  function botSay(html,delay){
+    var t=document.createElement('div');t.className='typing';t.innerHTML='<i></i><i></i><i></i>';chat.appendChild(t);chat.scrollTop=chat.scrollHeight;
+    return new Promise(function(res){setTimeout(function(){t.remove();res(add(html,'in'));},delay==null?650:delay);});
+  }
+  function keys(list){kb.innerHTML='';list.forEach(function(k){var b=document.createElement('button');b.type='button';b.textContent=k[0];if(k[2])b.className='wide';b.addEventListener('click',function(){k[1](k[0])});kb.appendChild(b);});}
+
+  function start(){
+    chat.innerHTML='';draft={};
+    add('Здравствуйте! Я «Яблочный дозор» 🍎<br>Заберу лишние яблоки прямо у калитки и передам переработчику. Вам — <b>10 ₽ за кг</b>, без поездок.','in');
+    keys([['🍎 Сдать яблоки',askPhoto],['ℹ️ Как это работает',how]]);
+  }
+  function how(t){me(t);botSay('1. Пришлите фото — оценю качество.<br>2. Укажите, где сад и сколько яблок.<br>3. Когда у соседей наберётся тонна, пришлю день вывоза и QR-бирки на мешки.<br>4. Переработчик взвесит мешки — деньги придут по СБП.').then(function(){keys([['🍎 Сдать яблоки',askPhoto,1]])});}
+  function askPhoto(t){me(t);botSay('Пришлите фото яблок — можно с телефона. Или возьмите пример, если показываете прототип.').then(function(){
+    keys([['📷 Загрузить своё фото',function(){photoInput.click()},1],['Пример: хорошие',function(x){sample('good',x)}],['Пример: падалица',function(x){sample('mid',x)}],['Пример: гниль',function(x){sample('rot',x)},1]]);});}
+
+  photoInput.addEventListener('change',function(){
+    var f=photoInput.files&&photoInput.files[0];if(!f)return;
+    var url=URL.createObjectURL(f),img=new Image();
+    img.onload=function(){var c=document.createElement('canvas'),k=Math.min(1,480/Math.max(img.width,img.height));c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);c.getContext('2d').drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);photoInput.value='';sendPhoto(c);};
+    img.onerror=function(){toast('Не получилось открыть файл. Попробуйте JPG или PNG.');};
+    img.src=url;
+  });
+
+  /* синтетические «фото» для демо: трава и яблоки разной сохранности */
+  function sample(kind,label){
+    var c=document.createElement('canvas');c.width=360;c.height=220;var x=c.getContext('2d');
+    var bg=x.createLinearGradient(0,0,0,220);bg.addColorStop(0,'#3e6a2c');bg.addColorStop(1,'#1f3816');x.fillStyle=bg;x.fillRect(0,0,360,220);
+    for(var i=0;i<260;i++){x.strokeStyle='rgba(120,180,80,'+(0.15+((i*53)%40)/100)+')';x.beginPath();var gx=(i*97)%360,gy=(i*61)%220;x.moveTo(gx,gy);x.lineTo(gx+((i%7)-3),gy-8-(i%9));x.stroke();}
+    var spots={good:0.05,mid:0.3,rot:0.75}[kind];
+    var apples=[[70,120,34],[140,90,30],[205,135,36],[275,95,31],[110,170,27],[250,175,28],[320,150,25],[40,60,22]];
+    apples.forEach(function(a,i){
+      var hue=i%3===0?'#d9b23a':'#d42a2f';var gr=x.createRadialGradient(a[0]-a[2]*.35,a[1]-a[2]*.35,2,a[0],a[1],a[2]);gr.addColorStop(0,i%3===0?'#f3d76a':'#ff6b5e');gr.addColorStop(1,hue);
+      x.fillStyle=gr;x.beginPath();x.arc(a[0],a[1],a[2],0,Math.PI*2);x.fill();
+      var n=Math.round(spots*8+((i*3)%3)*spots*2);
+      for(var j=0;j<n;j++){var ang=(j*2.4+i),rr=a[2]*(0.15+((j*37)%60)/100);x.fillStyle=j%2?'#5a3a1c':'#7a4f24';x.beginPath();x.arc(a[0]+Math.cos(ang)*rr*0.8,a[1]+Math.sin(ang)*rr*0.8,a[2]*(0.18+spots*0.35),0,Math.PI*2);x.fill();}
+    });
+    sendPhoto(c,label);
+  }
+
+  /* оценка по цвету: доля бурых пикселей среди «яблочных» */
+  function analyse(canvas){
+    var ctx=canvas.getContext('2d'),d=ctx.getImageData(0,0,canvas.width,canvas.height).data,apple=0,brown=0;
+    for(var i=0;i<d.length;i+=16){
+      var r=d[i]/255,g=d[i+1]/255,b=d[i+2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),v=mx,s=mx?(mx-mn)/mx:0,h=0;
+      if(mx!==mn){if(mx===r)h=((g-b)/(mx-mn))%6;else if(mx===g)h=(b-r)/(mx-mn)+2;else h=(r-g)/(mx-mn)+4;h*=60;if(h<0)h+=360;}
+      if(s<0.3||v<0.12)continue;
+      if((h>=8&&h<=45)&&v<0.55){brown++;continue;}
+      if(h<55||h>330){apple++;}
+    }
+    var all=apple+brown;return {share:all?brown/all:0,n:all};
+  }
+  function sendPhoto(canvas,label){
+    var m=me('');m.appendChild(canvas);if(label){var s=document.createElement('span');s.textContent=label;m.appendChild(s);}
+    kb.innerHTML='';
+    botSay('Смотрю на фото…',500).then(function(){
+      var a=analyse(canvas),pct=Math.round(a.share*100);
+      if(a.n<200){return botSay('Не вижу на фото красных или жёлтых яблок. Сфотографируйте ближе при дневном свете. <span class="note">Зелёные сорта и траву прототип пока путает — это задача нейросети в MVP.</span>').then(function(){keys([['📷 Другое фото',function(){photoInput.click()}],['Пример: хорошие',function(x){sample('good',x)}]])});}
+      var cls=pct<12?'техническое':pct<35?'падалица':'гниль';
+      draft.cls=cls;draft.pct=pct;
+      var bars='<div class="bars"><div class="bar"><span>целые</span><span class="t"><i style="width:'+(100-pct)+'%;background:#86d66b"></i></span><span>'+(100-pct)+'%</span></div><div class="bar"><span>бурые пятна</span><span class="t"><i style="width:'+pct+'%;background:#f0433a"></i></span><span>'+pct+'%</span></div></div>';
+      if(cls==='гниль') return botSay('Оценка: <b>много гнили</b>.'+bars+'Такую партию не возим: машина не поедет за гнилью. Можно отобрать целые яблоки и прислать новое фото.<span class="note">Демо-оценка по цвету пикселей. В MVP — нейросеть, на тесте класс ставит человек.</span>').then(function(){keys([['📷 Новое фото',askPhotoQuiet,1],['Пример: хорошие',function(x){sample('good',x)}],['Пример: падалица',function(x){sample('mid',x)}]])});
+      return botSay('Оценка: <b>'+cls+'</b> — принимаем.'+bars+'<span class="note">Демо-оценка по цвету пикселей. В MVP — нейросеть, на тесте класс ставит человек.</span>').then(function(){return botSay('Где сад? (в Telegram — кнопка «Отправить геопозицию»)',500)}).then(function(){
+        keys(Object.keys(VILLAGES).map(function(v){return ['📍 '+v,function(t){pickVillage(v,t)}]}));});
+    });
+  }
+  function askPhotoQuiet(){keys([['📷 Загрузить своё фото',function(){photoInput.click()},1],['Пример: хорошие',function(x){sample('good',x)}],['Пример: падалица',function(x){sample('mid',x)}]]);}
+  function pickVillage(v,t){me(t);draft.v=v;botSay('Сколько примерно яблок? Точный вес определим на приёмке.').then(function(){
+    keys([['1–2 мешка · ≈ 40 кг',function(x){pickKg(40,x)}],['3–5 мешков · ≈ 120 кг',function(x){pickKg(120,x)}],['6–10 мешков · ≈ 250 кг',function(x){pickKg(250,x)}],['больше · ≈ 500 кг',function(x){pickKg(500,x)}]]);});}
+  function pickKg(kg,t){me(t);draft.kg=kg;var vl=VILLAGES[draft.v],cl=CLUSTERS.filter(function(c){return c.id===vl[2]})[0],now=sum(byCl(cl.id));
+    botSay('Партия: <b>'+draft.cls+'</b>, ≈ '+kg+' кг, '+draft.v+'.<br>Ориентир: '+kg+' кг × 10 ₽ = <b>'+fmt(kg*PRICE_GARDEN)+' ₽</b> (точно — по весу на приёмке).<br>В кластере «'+cl.name+'» уже '+fmt(now)+' кг, рейс — от 1 000 кг.').then(function(){
+      keys([['✅ Подтвердить',confirm],['✏️ Изменить',function(x){me(x);askPhotoQuiet();botSay('Хорошо, пришлите фото ещё раз.')}]]);});}
+  function confirm(t){me(t);
+    var vl=VILLAGES[draft.v],jit=((nextId*7)%10-5)/400,o={id:nextId++,cl:vl[2],ll:[vl[0]+jit,vl[1]-jit],kg:draft.kg,cls:draft.cls,who:'Вы (демо)',v:draft.v,mine:true,fresh:true};
+    offers.push(o);renderDash();setTimeout(function(){o.fresh=false},3500);
+    var kg=sum(byCl(o.cl)),cl=CLUSTERS.filter(function(c){return c.id===o.cl})[0];
+    toast('Новая заявка на карте: '+o.v+', '+o.kg+' кг');
+    if(kg>=MIN_RUN){
+      botSay('🚚 Готово! В кластере «'+cl.name+'» набралось '+fmt(kg)+' кг — рейс назначен: <b>четверг, 10:00–12:00</b>.<br>Наклейте QR-бирки на мешки (или напишите код маркером):').then(function(m){m.appendChild(document.getElementById('qrTpl').content.cloneNode(true));chat.scrollTop=chat.scrollHeight;
+        return botSay('Переработчик видит заявку на карте. Кнопка «Собрать рейс» справа уже активна.',700);}).then(function(){keys([['🍎 Сдать ещё',askPhoto],['🔄 Начать заново',function(){start()}]])});
+    }else{
+      botSay('Заявка принята ✅ В кластере «'+cl.name+'» '+fmt(kg)+' кг. Рейс соберётся, когда наберётся 1 000 кг — пришлю уведомление.').then(function(){keys([['🍎 Сдать ещё',askPhoto],['🔄 Начать заново',function(){start()}]])});
+    }
+  }
+
+  var tt;function toast(t){var el=document.getElementById('toast');el.textContent=t;el.classList.add('on');clearTimeout(tt);tt=setTimeout(function(){el.classList.remove('on')},2600);}
+  document.getElementById('resetAll').addEventListener('click',function(){offers=seed();nextId=12;runCluster=null;document.getElementById('run').classList.remove('on');renderDash();start();calc();});
+
+  renderDash();calc();start();
+})();
+</script>
