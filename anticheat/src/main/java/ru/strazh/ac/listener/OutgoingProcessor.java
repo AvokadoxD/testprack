@@ -60,7 +60,7 @@ final class OutgoingProcessor {
         switch (type) {
             case PING -> {
                 WrapperPlayServerPing w = new WrapperPlayServerPing(event);
-                if (TransactionManager.isOurs(w.getId())) {
+                if (tx.isOurs(w.getId())) {
                     tx.onPingWritten(w.getId());
                 }
             }
@@ -90,10 +90,12 @@ final class OutgoingProcessor {
             case PLAYER_ROTATION -> {
                 WrapperPlayServerPlayerRotation w = new WrapperPlayServerPlayerRotation(event);
                 data.rotations().add(new RotationTracker.Forced(tx.lastSent(), tx.nextPostSeq(),
-                        w.getYaw(), w.isRelativeYaw(), w.getPitch(), w.isRelativePitch()));
+                        w.getYaw(), w.isRelativeYaw(), w.getPitch(), w.isRelativePitch(), true));
+                // Пинг сразу после поворота: окно, в котором ждём эхо, будет коротким.
+                tx.send();
             }
             case FACE_PLAYER -> data.rotations().add(new RotationTracker.Forced(tx.lastSent(), tx.nextPostSeq(),
-                    0, true, 0, true));
+                    0, true, 0, true, false));
             case JOIN_GAME -> {
                 WrapperPlayServerJoinGame w = new WrapperPlayServerJoinGame(event);
                 data.entityId = w.getEntityId();
@@ -195,6 +197,7 @@ final class OutgoingProcessor {
                 int id = w.getContainerId();
                 tx.runOnConfirm(tx.nextPostSeq(), () -> {
                     data.actions().containerOpen = true;
+                    data.actions().inventoryOpen = false;
                     data.actions().openWindowId = id;
                     data.actions().lastWindowOpenTick = data.movement().clientTick;
                 });
@@ -203,6 +206,7 @@ final class OutgoingProcessor {
                 WrapperPlayServerCloseWindow w = new WrapperPlayServerCloseWindow(event);
                 tx.runOnConfirm(tx.nextPostSeq(), () -> {
                     data.actions().containerOpen = false;
+                    data.actions().inventoryOpen = false;
                     data.actions().openWindowId = -1;
                     data.actions().lastWindowCloseTick = data.movement().clientTick;
                 });
@@ -238,7 +242,7 @@ final class OutgoingProcessor {
         long post = tx.nextPostSeq();
         data.teleports().add(new TeleportTracker.Pending(w.getTeleportId(), w.getX(), w.getY(), w.getZ(),
                 w.getYaw(), w.getPitch(), relX, relY, relZ, relYaw, relPitch, delta, relDelta, post));
-        data.rotations().add(new RotationTracker.Forced(tx.lastSent(), post, w.getYaw(), relYaw, w.getPitch(), relPitch));
+        // Ротацию телепорта отдельно не учитываем: эхо телепорта помечается как teleport.
         tx.send();
     }
 

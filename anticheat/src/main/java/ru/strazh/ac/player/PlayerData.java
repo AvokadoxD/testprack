@@ -69,8 +69,10 @@ public final class PlayerData {
     public volatile long lastKeepAliveResponseNanos;
     public volatile int invalidKeepAlives;
 
-    // ---- телепорты ----
+    // ---- телепорты и навязанные повороты ----
     public volatile int invalidTeleportConfirms;
+    /** Распознанных эхо-пакетов навязанного поворота камеры. */
+    public volatile int rotationEchoes;
 
     // ---- прочее ----
     public volatile int entityId = -1;

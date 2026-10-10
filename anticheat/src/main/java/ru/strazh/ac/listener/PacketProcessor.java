@@ -152,12 +152,14 @@ public final class PacketProcessor implements PacketListener {
                 if (w.getWindowId() == 0 && !a.containerOpen) {
                     // Клик в инвентаре игрока означает, что инвентарь открыт.
                     a.openWindowId = 0;
+                    a.inventoryOpen = true;
                 }
             }
             case CLOSE_WINDOW -> {
                 WrapperPlayClientCloseWindow w = new WrapperPlayClientCloseWindow(event);
                 ActionTracker a = data.actions();
                 a.containerOpen = false;
+                a.inventoryOpen = false;
                 a.openWindowId = -1;
                 a.lastWindowCloseTick = data.movement().clientTick;
             }
@@ -229,6 +231,7 @@ public final class PacketProcessor implements PacketListener {
             long tick = data.movement().clientTick;
             data.velocity().onConfirmed(confirmed, tick);
             data.entities().onConfirmed(confirmed, tick);
+            data.rotations().onPong(confirmed, tick);
         }
     }
 
@@ -422,6 +425,12 @@ public final class PacketProcessor implements PacketListener {
         boolean teleport = echo != null;
         boolean teleportPending = tp.hasPending();
 
+        // ---- эхо навязанного сервером поворота (1.21.2+: Look с onGround=false) ----
+        if (!teleport && rot && !pos && !w.isOnGround() && !w.isHorizontalCollision()
+                && data.rotations().matchEcho(confirmed) != null) {
+            return handleRotationEcho(data, loc, tick);
+        }
+
         // ---- позиция ----
         m.lastX = m.x;
         m.lastY = m.y;
@@ -446,8 +455,11 @@ public final class PacketProcessor implements PacketListener {
         m.deltaY = m.y - m.lastY;
         m.deltaZ = m.z - m.lastZ;
         m.deltaXZ = Math.sqrt(m.deltaX * m.deltaX + m.deltaZ * m.deltaZ);
-        m.onGround = w.isOnGround();
-        m.horizontalCollision = w.isHorizontalCollision();
+        if (!teleport) {
+            // Эхо телепорта всегда приходит с onGround=false — не учитываем его.
+            m.onGround = w.isOnGround();
+            m.horizontalCollision = w.isHorizontalCollision();
+        }
         m.positionChanged = pos;
         m.movesThisTick++;
         if (teleport) {
@@ -517,6 +529,24 @@ public final class PacketProcessor implements PacketListener {
         data.queueMain(d -> plugin.simulation().handle(d, snapshot));
 
         return new Object[]{rotationUpdate, moveUpdate};
+    }
+
+    /**
+     * Эхо навязанного поворота: обновляем только ротацию (следующая дельта будет
+     * чистым движением мыши), не трогаем onGround/позицию, не считаем тиком и не
+     * отправляем в симуляцию.
+     */
+    private Object[] handleRotationEcho(PlayerData data, Location loc, long tick) {
+        MovementTracker m = data.movement();
+        m.lastYaw = m.yaw;
+        m.lastPitch = m.pitch;
+        m.yaw = loc.getYaw();
+        m.pitch = loc.getPitch();
+        float dYaw = m.yaw - m.lastYaw, dPitch = m.pitch - m.lastPitch;
+        RotationUpdate update = new RotationUpdate(tick, m.yaw, m.pitch, m.lastYaw, m.lastPitch,
+                dYaw, dPitch, m.lastDeltaYaw, m.lastDeltaPitch, true, data.vehicle().inVehicle(), false, false);
+        data.rotationEchoes++;
+        return new Object[]{update, null};
     }
 
     // =====================================================================

@@ -28,9 +28,27 @@ import java.util.ArrayDeque;
  */
 public final class TransactionManager {
 
-    /** Диапазон id наших пингов: отрицательные значения, не пересекающиеся с ванилью. */
-    public static final int ID_BASE = -1_879_048_192;
-    public static final int ID_RANGE = 1 << 20;
+    /**
+     * id наших пингов — псевдослучайные 32-битные значения (а не последовательность
+     * из узкого диапазона): читы определяют античит по диапазону id транзакций.
+     * Соответствие id -> seq хранится до подтверждения.
+     */
+    private final java.util.Map<Integer, Long> idToSeq = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.SplittableRandom random = new java.util.SplittableRandom();
+
+    public boolean isOurs(int id) {
+        return idToSeq.containsKey(id);
+    }
+
+    private int newId(long seq) {
+        int id;
+        do {
+            id = random.nextInt();
+            // Избегаем значений, которые используют ваниль и известные античиты/плагины.
+        } while ((id > -32768 && id < 32768) || idToSeq.containsKey(id));
+        idToSeq.put(id, seq);
+        return id;
+    }
 
     private final PlayerData data;
     private final Object createLock = new Object();
@@ -57,23 +75,6 @@ public final class TransactionManager {
         this.data = data;
     }
 
-    public static boolean isOurs(int id) {
-        return id >= ID_BASE && id < ID_BASE + ID_RANGE;
-    }
-
-    private static int toId(long seq) {
-        return ID_BASE + (int) (seq % ID_RANGE);
-    }
-
-    /** Восстанавливает seq по id относительно опорного seq (обработка переполнения диапазона). */
-    private static long toSeq(int id, long reference) {
-        long base = reference - (reference % ID_RANGE);
-        long candidate = base + (id - ID_BASE);
-        if (candidate < reference - ID_RANGE / 2) candidate += ID_RANGE;
-        if (candidate > reference + ID_RANGE / 2) candidate -= ID_RANGE;
-        return candidate;
-    }
-
     /** Отправляет новый пинг. Можно вызывать из любого потока. */
     public void send() {
         User user = data.user();
@@ -84,14 +85,16 @@ public final class TransactionManager {
         }
         synchronized (createLock) {
             long seq = ++createdSeq;
-            WrapperPlayServerPing ping = new WrapperPlayServerPing(toId(seq));
+            WrapperPlayServerPing ping = new WrapperPlayServerPing(newId(seq));
             ChannelHelper.runInEventLoop(channel, () -> user.sendPacket(ping));
         }
     }
 
     /** Наш пинг реально записан в канал (event loop). */
     public void onPingWritten(int id) {
-        long seq = toSeq(id, lastSentSeq + 1);
+        Long boxed = idToSeq.get(id);
+        if (boxed == null) return;
+        long seq = boxed;
         if (seq > lastSentSeq) {
             lastSentSeq = seq;
             if (inFlight.isEmpty()) {
@@ -105,10 +108,11 @@ public final class TransactionManager {
      * Клиент ответил Pong. Возвращает true, если это наш пинг (его надо отменить).
      */
     public boolean onPong(int id) {
-        if (!isOurs(id)) {
+        Long boxed = idToSeq.remove(id);
+        if (boxed == null) {
             return false;
         }
-        long seq = toSeq(id, lastConfirmedSeq + 1);
+        long seq = boxed;
         if (seq <= lastConfirmedSeq || seq > lastSentSeq) {
             // Ответ на неотправленный или уже подтверждённый пинг — подделка или
             // переупорядочивание ответов (дизейблеры).
@@ -124,6 +128,10 @@ public final class TransactionManager {
         long now = System.nanoTime();
         while (!inFlight.isEmpty() && inFlight.peekFirst()[0] <= seq) {
             long[] e = inFlight.pollFirst();
+            if (e[0] != seq) {
+                // Пропущенные пинги больше не ждём.
+                idToSeq.values().remove(e[0]);
+            }
             if (e[0] == seq) {
                 double rtt = (now - e[1]) / 1_000_000.0;
                 lastRttMs = rtt;

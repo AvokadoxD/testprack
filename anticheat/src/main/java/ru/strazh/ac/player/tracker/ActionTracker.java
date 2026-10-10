@@ -28,9 +28,15 @@ public final class ActionTracker {
     public int heldSlot;
     public long lastSlotChangeTick = -1000;
     public int slotChangesThisTick;
-    /** id открытого контейнера (0 — инвентарь игрока или ничего). */
+    /** id открытого окна (0 — инвентарь игрока, -1 — ничего). */
     public int openWindowId = -1;
+    /** Открыт контейнер, открытый сервером (сундук, верстак...), подтверждено транзакцией. */
     public boolean containerOpen;
+    /**
+     * Открыт собственный инвентарь игрока. Открытие не сопровождается пакетом,
+     * поэтому признак выставляется по первому клику в окне 0 и снимается по Close.
+     */
+    public boolean inventoryOpen;
     public long lastWindowOpenTick = -1000;
     public long lastWindowClickTick = -1000;
     public long lastWindowCloseTick = -1000;
@@ -56,6 +62,11 @@ public final class ActionTracker {
     public long lastGlideRequestTick = -1000;
 
     /** Сброс счётчиков «за тик» на границе клиентского тика. */
+    /** Открыт любой экран с инвентарём (по данным пакетов). */
+    public boolean anyScreenOpen() {
+        return containerOpen || inventoryOpen;
+    }
+
     public void onTickEnd() {
         sprintTogglesThisTick = 0;
         sneakTogglesThisTick = 0;
