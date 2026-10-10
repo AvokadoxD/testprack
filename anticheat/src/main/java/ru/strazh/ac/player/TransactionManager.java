@@ -60,6 +60,10 @@ public final class TransactionManager {
     private final ArrayDeque<long[]> inFlight = new ArrayDeque<>(); // {seq, sentNanos}
     private final ArrayDeque<Task> tasks = new ArrayDeque<>();
     private final DoubleWindow rttWindow = new DoubleWindow(40);
+    /** Длинное окно RTT для базового (минимального) пинга. */
+    private final DoubleWindow rttLongWindow = new DoubleWindow(400);
+    private volatile double baselineRttMs = -1;
+    private int baselineCounter;
     private volatile double lastRttMs;
     private volatile double smoothedRttMs = -1;
     private volatile long oldestInFlightNanos;
@@ -136,6 +140,13 @@ public final class TransactionManager {
                 double rtt = (now - e[1]) / 1_000_000.0;
                 lastRttMs = rtt;
                 rttWindow.add(rtt);
+                rttLongWindow.add(rtt);
+                if (++baselineCounter % 20 == 0 || baselineRttMs < 0) {
+                    // 10-й перцентиль за ~20 секунд: устойчив к искусственному раздуванию пинга в бою.
+                    double[] arr = rttLongWindow.toArray();
+                    java.util.Arrays.sort(arr);
+                    baselineRttMs = arr[Math.min(arr.length - 1, arr.length / 10)];
+                }
                 smoothedRttMs = smoothedRttMs < 0 ? rtt : smoothedRttMs * 0.9 + rtt * 0.1;
             }
         }
@@ -217,6 +228,11 @@ public final class TransactionManager {
     /** Сглаженный RTT по транзакциям, мс (или -1, если ещё нет данных). */
     public double smoothedRttMs() {
         return smoothedRttMs;
+    }
+
+    /** Базовый RTT (низкий перцентиль за длинное окно), мс; -1 — нет данных. */
+    public double baselineRttMs() {
+        return baselineRttMs;
     }
 
     public double rttStdDev() {

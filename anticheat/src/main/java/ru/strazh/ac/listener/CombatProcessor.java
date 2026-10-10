@@ -31,7 +31,12 @@ public final class CombatProcessor {
         }
         long confirmed = data.transactions().lastConfirmed();
         int interp = t.living || t.isPlayer ? 3 : 1;
-        AABB box = t.possibleBox(confirmed, data.movement().clientTick, interp + 1);
+        long clientTick = data.movement().clientTick;
+        AABB unbounded = t.possibleBox(confirmed, clientTick, interp + 1);
+        double baseline = data.transactions().baselineRttMs();
+        double maxAgeMs = Math.max(300.0, (baseline < 0 ? 300.0 : baseline) + 150.0);
+        AABB box = t.possibleBox(confirmed, clientTick, interp + 1, (long) (maxAgeMs * 1_000_000L));
+        if (box == null) box = unbounded;
         if (box == null) {
             a.uncertain = true;
             return;
@@ -59,6 +64,13 @@ public final class CombatProcessor {
             }
         }
         a.distance = best;
+        if (unbounded != null) {
+            double bu = Double.MAX_VALUE;
+            for (double eh : EYE_HEIGHTS) {
+                bu = Math.min(bu, Math.sqrt(unbounded.distanceSquared(a.eyeX, a.feetY + eh * scale, a.eyeZ)));
+            }
+            a.distanceUnbounded = bu;
+        }
         a.rayHit = hit;
         a.aimErrorYaw = bestYawErr;
         a.aimErrorPitch = bestPitchErr;

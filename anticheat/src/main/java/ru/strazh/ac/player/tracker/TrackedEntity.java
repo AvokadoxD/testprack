@@ -17,6 +17,8 @@ public final class TrackedEntity {
     public static final class State {
         public final double x, y, z;
         public final long preSeq, postSeq;
+        /** Время отправки позиции клиенту. */
+        public final long sentNanos = System.nanoTime();
         /** Клиентский тик, когда postSeq подтверждён (-1 — ещё нет). */
         public long confirmedTick = -1;
 
@@ -91,6 +93,15 @@ public final class TrackedEntity {
      * @return бокс или null, если клиент ещё не получил ни одной позиции
      */
     public AABB possibleBox(long lastConfirmed, long clientTick, int interpolationTicks) {
+        return possibleBox(lastConfirmed, clientTick, interpolationTicks, Long.MAX_VALUE);
+    }
+
+    /**
+     * То же, но без позиций, отправленных раньше {@code maxAgeNanos} назад
+     * (кроме самой свежей из доступных клиенту): ограничение компенсации лага
+     * против BackTrack/FakeLag, которые задерживают входящие пакеты.
+     */
+    public AABB possibleBox(long lastConfirmed, long clientTick, int interpolationTicks, long maxAgeNanos) {
         int base = -1;
         for (int i = states.size() - 1; i >= 0; i--) {
             State s = states.get(i);
@@ -106,10 +117,19 @@ public final class TrackedEntity {
         int start = Math.max(base, 0);
         AABB box = null;
         double w = width * scale, h = height * scale;
+        long now = System.nanoTime();
+        int last = start;
         for (int i = start; i < states.size(); i++) {
-            State s = states.get(i);
-            if (lastConfirmed < s.preSeq && i != start) {
+            if (i != start && lastConfirmed < states.get(i).preSeq) {
                 break; // клиент ещё не мог получить эту и следующие позиции
+            }
+            last = i;
+        }
+        for (int i = start; i <= last; i++) {
+            State s = states.get(i);
+            if (i != last && maxAgeNanos != Long.MAX_VALUE && now - states.get(i + 1).sentNanos > maxAgeNanos) {
+                // Клиент должен был давно получить более новую позицию — старую не учитываем.
+                continue;
             }
             AABB b = AABB.ofEntity(s.x, s.y, s.z, w, h);
             box = box == null ? b : box.union(b);

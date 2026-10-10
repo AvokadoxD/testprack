@@ -426,9 +426,12 @@ public final class PacketProcessor implements PacketListener {
         boolean teleportPending = tp.hasPending();
 
         // ---- эхо навязанного сервером поворота (1.21.2+: Look с onGround=false) ----
-        if (!teleport && rot && !pos && !w.isOnGround() && !w.isHorizontalCollision()
-                && data.rotations().matchEcho(confirmed) != null) {
-            return handleRotationEcho(data, loc, tick);
+        if (!teleport && rot && !pos && !w.isOnGround() && !w.isHorizontalCollision()) {
+            var forced = data.rotations().matchEcho(confirmed);
+            if (forced != null) {
+                boolean probe = forced.relYaw && forced.relPitch && forced.yaw == 0f && forced.pitch == 0f;
+                return handleRotationEcho(data, loc, tick, probe);
+            }
         }
 
         // ---- позиция ----
@@ -536,8 +539,13 @@ public final class PacketProcessor implements PacketListener {
      * чистым движением мыши), не трогаем onGround/позицию, не считаем тиком и не
      * отправляем в симуляцию.
      */
-    private Object[] handleRotationEcho(PlayerData data, Location loc, long tick) {
+    private Object[] handleRotationEcho(PlayerData data, Location loc, long tick, boolean probe) {
         MovementTracker m = data.movement();
+        data.lastEchoYaw = loc.getYaw();
+        data.lastEchoPitch = loc.getPitch();
+        data.lastEchoTick = tick;
+        data.lastEchoWasProbe = probe;
+        data.probeAwaitingMove = probe;
         m.lastYaw = m.yaw;
         m.lastPitch = m.pitch;
         m.yaw = loc.getYaw();

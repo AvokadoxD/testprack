@@ -73,6 +73,17 @@ public final class PlayerData {
     public volatile int invalidTeleportConfirms;
     /** Распознанных эхо-пакетов навязанного поворота камеры. */
     public volatile int rotationEchoes;
+    /**
+     * Последнее эхо поворота: углы КАМЕРЫ клиента в момент обработки пакета
+     * (event loop). Если поворот был относительным нулевым (зонд), то легитный
+     * клиент в следующем пакете движения этого тика сообщит те же углы, а
+     * silent-аура — углы своей цели.
+     */
+    public float lastEchoYaw, lastEchoPitch;
+    public long lastEchoTick = -1000;
+    public boolean lastEchoWasProbe;
+    /** Эхо-зонд ждёт сравнения со следующим пакетом движения. */
+    public boolean probeAwaitingMove;
 
     // ---- прочее ----
     public volatile int entityId = -1;
