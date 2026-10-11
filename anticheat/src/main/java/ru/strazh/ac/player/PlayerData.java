@@ -97,6 +97,9 @@ public final class PlayerData {
     public volatile boolean loaded;
     /** Игрок мёртв (экран смерти) — главный поток выставляет по событиям. */
     public volatile boolean dead;
+    /** Время последних событий, влияющих на движение (главный поток). */
+    public volatile long lastEffectChangeMillis, lastRiptideMillis, lastElytraBoostMillis, lastBlockChangeMillis,
+            lastDamageMillis, lastGlideToggleMillis;
 
     public PlayerData(StrazhPlugin plugin, User user) {
         this.plugin = plugin;
@@ -164,6 +167,10 @@ public final class PlayerData {
         if (plugin == null || plugin.config().setbackEnabled) {
             setbackRequest = reason;
         }
+    }
+
+    public boolean hasSetbackRequest() {
+        return setbackRequest != null;
     }
 
     public String pollSetbackRequest() {

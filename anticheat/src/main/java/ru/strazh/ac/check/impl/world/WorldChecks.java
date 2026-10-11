@@ -4,12 +4,13 @@ import ru.strazh.ac.check.Check;
 
 import java.util.List;
 
-/** Проверки категории «Мир». Новые классы добавляются в этот список. */
+/** Проверки категории «Мир». */
 public final class WorldChecks {
 
     private WorldChecks() {
     }
 
     public static final List<Class<? extends Check>> ALL = List.of(
+            BlockReachA.class, ScaffoldA.class, AirPlaceA.class, FastBreakA.class
     );
 }

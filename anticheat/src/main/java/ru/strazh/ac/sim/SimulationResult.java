@@ -51,6 +51,34 @@ public final class SimulationResult {
     /** Наличие блоков-жидкостей/лестниц и т.п. вокруг. */
     public boolean inLiquid, onClimbable, inWeb, onIce, onSlime, onHoney, onSoulSand, nearPiston;
 
+    // ---- для проверок движения ----
+    /** Максимально допустимая горизонтальная скорость в этом тике (без замедлений предметом/приседом). */
+    public double allowedXZ = Double.MAX_VALUE;
+    /** То же с учётом замедления от использования предмета/приседа. */
+    public double slowedAllowedXZ = Double.MAX_VALUE;
+    /** Ожидаемое вертикальное смещение в воздухе (NaN — не проверяется). */
+    public double predictedDy = Double.NaN;
+    /** Был ли игрок на земле в прошлом тике (по коллизиям). */
+    public boolean prevServerGround;
+    /** Касание земли в конце тика (приземление). */
+    public boolean landing;
+    /** Подъём с земли за тик и допустимые значения. */
+    public double jumpPower = 0.42, stepAllowed = 0.6;
+    /** Клиент заявил onGround, а под ногами нет опоры (спуф земли / ходьба по воде). */
+    public boolean groundSpoof;
+    /** Опора — жидкость (Jesus). */
+    public boolean groundSpoofOnLiquid;
+    /** Сервер видит опору, а клиент упорно сообщает, что в воздухе (NoGround NoFall). */
+    public boolean noGroundSpoof;
+    /** Игрок вошёл в твёрдый блок. */
+    public boolean phase;
+    /** Использует предмет / крадётся (по серверу и вводу). */
+    public boolean usingItem, sneaking;
+    /** Горизонтальное столкновение со стеной (по коллизиям). */
+    public boolean wallCollision;
+    /** Блок над головой. */
+    public boolean ceiling;
+
     public SimulationResult(MoveSnapshot snapshot) {
         this.snapshot = snapshot;
     }

@@ -10,7 +10,7 @@ public final class Engines {
     }
 
     public static SimulationEngine create(StrazhPlugin plugin) {
-        return new NoopEngine();
+        return new ru.strazh.ac.sim.engine.BoundsEngine(plugin);
     }
 
     public static HoneypotManager createHoneypots(StrazhPlugin plugin) {

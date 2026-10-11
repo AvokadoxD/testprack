@@ -47,6 +47,12 @@ public final class SimulationService {
                 plugin.getLogger().log(Level.WARNING, "Ошибка проверки " + c.getClass().getSimpleName(), t);
             }
         }
+        // Честный тик — запоминаем позицию для отката.
+        if (snapshot.positionChanged() && !data.hasSetbackRequest()
+                && (!result.skip || snapshot.teleportEcho() != null || result.skipReason.equals("транспорт"))) {
+            data.sim().lastValid = new org.bukkit.Location(player.getWorld(), snapshot.x(), snapshot.y(), snapshot.z(),
+                    snapshot.yaw(), snapshot.pitch());
+        }
     }
 
     /** Выполняет запрошенный откат позиции (главный поток). */

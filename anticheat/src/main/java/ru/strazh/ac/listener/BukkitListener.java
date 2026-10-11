@@ -168,6 +168,22 @@ public final class BukkitListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEffect(org.bukkit.event.entity.EntityPotionEffectEvent event) {
+        if (event.getEntity() instanceof Player p) {
+            PlayerData data = plugin.players().get(p);
+            if (data != null) data.lastEffectChangeMillis = System.currentTimeMillis();
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onAnyDamage(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (event.getEntity() instanceof Player p) {
+            PlayerData data = plugin.players().get(p);
+            if (data != null) data.lastDamageMillis = System.currentTimeMillis();
+        }
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(org.bukkit.event.entity.PlayerDeathEvent event) {
         PlayerData data = plugin.players().get(event.getEntity());
@@ -225,6 +241,27 @@ public final class BukkitListener implements Listener {
                 c.onBukkitEvent(event);
             } catch (Throwable t) {
                 plugin.getLogger().warning("Ошибка проверки " + c.getClass().getSimpleName() + ": " + t);
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlaceMonitor(BlockPlaceEvent event) {
+        markBlockChange(event.getBlock().getLocation());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBreakMonitor(BlockBreakEvent event) {
+        markBlockChange(event.getBlock().getLocation());
+    }
+
+    /** Изменение блока рядом с игроками: возможны «призрачные» блоки у клиента. */
+    private void markBlockChange(org.bukkit.Location loc) {
+        long now = System.currentTimeMillis();
+        for (Player p : loc.getWorld().getPlayers()) {
+            if (p.getLocation().distanceSquared(loc) < 9.0) {
+                PlayerData d = plugin.players().get(p);
+                if (d != null) d.lastBlockChangeMillis = now;
             }
         }
     }
@@ -297,18 +334,24 @@ public final class BukkitListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onRiptide(PlayerRiptideEvent event) {
+        PlayerData d = plugin.players().get(event.getPlayer());
+        if (d != null) d.lastRiptideMillis = System.currentTimeMillis();
         dispatch(event.getPlayer(), event);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onGlide(EntityToggleGlideEvent event) {
         if (event.getEntity() instanceof Player p) {
+            PlayerData d = plugin.players().get(p);
+            if (d != null) d.lastGlideToggleMillis = System.currentTimeMillis();
             dispatch(p, event);
         }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBoost(PlayerElytraBoostEvent event) {
+        PlayerData d = plugin.players().get(event.getPlayer());
+        if (d != null) d.lastElytraBoostMillis = System.currentTimeMillis();
         dispatch(event.getPlayer(), event);
     }
 
