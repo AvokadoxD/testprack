@@ -28,9 +28,16 @@ public final class InventoryA extends Check implements PacketCheck {
 
     private final TickWindow window = new TickWindow();
     private boolean playerInventoryOpen;
+    private int keysHeldOpens;
+    private long containerCheckedTick = -1;
 
     public InventoryA(PlayerData data) {
         super(data);
+    }
+
+    private boolean movementKeysHeld() {
+        var a = data.actions();
+        return a.hasInputPacket && (a.inputForward || a.inputBackward || a.inputLeft || a.inputRight || a.inputJump);
     }
 
     @Override
@@ -40,7 +47,17 @@ public final class InventoryA extends Check implements PacketCheck {
         var act = data.actions();
         switch (t) {
             case CLICK_WINDOW -> {
-                if (act.openWindowId == 0 && between && data.client().sendsTickEnd) playerInventoryOpen = true;
+                if (act.openWindowId == 0 && between && data.client().sendsTickEnd) {
+                    if (!playerInventoryOpen && movementKeysHeld() && !data.inVehicleRecently(5)) {
+                        // Открытие экрана ванильно отпускает все клавиши (PlayerInput со всеми false
+                        // приходит до первого клика) — а здесь клавиши движения всё ещё зажаты.
+                        if (++keysHeldOpens >= 2) {
+                            flag("клавиши движения зажаты при открытом инвентаре");
+                            keysHeldOpens = 0;
+                        }
+                    }
+                    playerInventoryOpen = true;
+                }
                 return;
             }
             case CLOSE_WINDOW -> {
@@ -53,6 +70,15 @@ public final class InventoryA extends Check implements PacketCheck {
         if (!act.inventoryOpen) playerInventoryOpen = false;
         boolean open = act.containerOpen || playerInventoryOpen;
         if (!open || data.inVehicleRecently(5)) return;
+        // Контейнер открыт уже 3+ тика, а клавиши движения так и не отпущены.
+        long tick = data.movement().clientTick;
+        if (act.containerOpen && t == PacketType.Play.Client.CLIENT_TICK_END && tick - act.lastWindowOpenTick >= 3
+                && containerCheckedTick != act.lastWindowOpenTick && data.client().sendsTickEnd) {
+            containerCheckedTick = act.lastWindowOpenTick;
+            if (movementKeysHeld()) {
+                flag("клавиши движения не отпущены при открытом контейнере");
+            }
+        }
         String what = switch (t) {
             case INTERACT_ENTITY -> "interact";
             case USE_ITEM -> "use";

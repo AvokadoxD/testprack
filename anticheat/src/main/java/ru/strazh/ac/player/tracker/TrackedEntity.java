@@ -146,6 +146,11 @@ public final class TrackedEntity {
         return best;
     }
 
+    /** Клиентский тик, когда клиент точно получил первую позицию (появление), или -1. */
+    public long firstConfirmedTick() {
+        return states.isEmpty() ? -1 : states.get(0).confirmedTick;
+    }
+
     public int stateCount() {
         return states.size();
     }

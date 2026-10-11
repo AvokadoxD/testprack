@@ -12,6 +12,6 @@ public final class CombatChecks {
 
     public static final List<Class<? extends Check>> ALL = List.of(
             ReachA.class, ReachB.class, HitboxA.class, MultiAuraA.class, NoSwingA.class, WallHitA.class,
-            CriticalsA.class, AutoClickerA.class, KillAuraA.class
+            CriticalsA.class, AutoClickerA.class, KillAuraA.class, CrystalAuraA.class
     );
 }
