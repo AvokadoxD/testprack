@@ -57,12 +57,12 @@ remove "strazh_exempt_movement" from scoreboard tags of player
 - **Ловушка-NPC**: подозреваемому показывается фейковый игрок строго за спиной (с ником в табе, реальным подписанным скином, правильным UUID и снаряжением). Человек не может навести на него прицел, аура бьёт.
 - **Смягчение**: при подозрении в бою часть ударов тихо отменяется ещё до наказания (`mitigation`). Нарушения движения — откат на последнюю честную позицию.
 
-## Проверки (60)
+## Проверки (61)
 
 **Бой:** Reach A (дистанция удара), Reach B (BackTrack — удар по устаревшей позиции), Hitbox A (луч мимо хитбокса), MultiAura A (несколько целей за тик), NoSwing A, WallHit A (сквозь блоки), Criticals A (пакетные/мини-криты), AutoClicker A (CPS, роботизированные интервалы, кликер «раз в тик»), Velocity A (AntiKB), Honeypot A (удар по ловушке), KillAura A (статистика ударов как у ауры: ритм по кулдауну, криты, нет промахов, сброс спринта), CrystalAura A (мгновенный удар по кристаллу после появления).
 **Аим:** Aim A (нет квантования мыши, экспериментальная), Aim B (обёрнутый yaw), Aim C (снап на цель в момент удара и возврат), Aim D (зонд тихого аима), Aim E (отпечатки ротаций паст Expensive: «+3.1°» зигзаг, дрожание ±1°).
 **Движение:** Speed A, NoSlow A, Fly A (подъём, зависание, HighJump, Step, Spider, AirJump), Fly B (FastFall), NoFall A (подмена земли, Jesus, NoGround), Phase A, Timer A (по транзакциям, ловит Timer/TickBase и «накопление»), Strafe A (ускорение не по нажатым клавишам — MoveFix тихой ауры, TargetStrafe), Climb A (FastClimb), Elytra A (полёт на элитрах без фейерверка не по ванильной физике), Vehicle A (BoatFly, EntitySpeed для лодок и лошадей), Sprint A (спринт при голоде/слепоте).
-**Мир:** BlockReach A, Scaffold A (точка клика не на луче взгляда / грань не видна из глаз), AirPlace A, FastBreak A (+ Nuker), Nuker B (копание блока не под прицелом — Nuker, PacketMine).
+**Мир:** BlockReach A, Scaffold A (точка клика не на луче взгляда / грань не видна из глаз), AirPlace A, FastBreak A (+ Nuker), Nuker B (копание блока не под прицелом — Nuker, PacketMine), GhostHand A (клик/копание сквозь блоки — ChestAura, Nuker сквозь стены).
 **Игрок:** Inventory A (действия и движение при открытом инвентаре, в т.ч. зажатые клавиши при открытии — GuiMove, ClickPearl, AutoTotem, свап-движки), Inventory B (удар сразу после клика/закрытия окна), Inventory C (невозможные клики), Inventory D (ChestStealer/AutoBuy), Inventory E (AutoTotem), NoSlow B (пакетные обходы замедления), FastUse A.
 **Пакеты:** BadPackets A–L, PacketOrder A, Transaction A–C, NoRotate A.
 **Прочее:** ClientBrand A (бренд/каналы чит-клиентов, список настраивается).

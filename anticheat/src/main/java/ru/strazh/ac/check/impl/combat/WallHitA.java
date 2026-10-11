@@ -34,31 +34,44 @@ public final class WallHitA extends Check implements CombatCheck {
         if (a.uncertain || a.targetBox == null || !a.rayHit || a.distance < 0) return;
         final AABB box = a.targetBox;
         final double ex = a.eyeX, ez = a.eyeZ;
-        final double ey = a.feetY + (a.sneaking ? 1.27 : 1.62) * data.attributes().scale;
+        final double feet = a.feetY, scale = data.attributes().scale;
         final float yaw = a.yawAfter, pitch = a.pitchAfter;
-        data.queueMain(d -> check(box, ex, ey, ez, yaw, pitch));
+        data.queueMain(d -> {
+            String bad = null;
+            for (double eh : new double[]{1.62, 1.27, 0.4}) {
+                String r = check(box, ex, feet + eh * scale, ez, yaw, pitch);
+                if (r == null) {
+                    decreaseBuffer(0.1);
+                    return;
+                }
+                if (!r.isEmpty()) bad = r;
+            }
+            if (bad != null && increaseBuffer(1.0) > 1.5) {
+                flag(bad);
+            }
+        });
     }
 
-    private void check(AABB box, double ex, double ey, double ez, float yaw, float pitch) {
+    /** @return null — чисто, "" — эта высота глаз невозможна, иначе описание нарушения */
+    private String check(AABB box, double ex, double ey, double ez, float yaw, float pitch) {
         Player p = data.player();
-        if (p == null) return;
+        if (p == null) return null;
         World w = p.getWorld();
         Vec3 dir = McMath.viewVectorPrecise(pitch, yaw);
         double entityDist = box.rayIntersect(ex, ey, ez, dir.x(), dir.y(), dir.z(), 8.0);
-        if (entityDist <= 0.05) return;
-        if (!w.isChunkLoaded((int) Math.floor(ex) >> 4, (int) Math.floor(ez) >> 4)) return;
+        if (entityDist < 0) return ""; // с этой высоты луч мимо — судит Hitbox
+        if (entityDist <= 0.05) return null;
+        if (!w.isChunkLoaded((int) Math.floor(ex) >> 4, (int) Math.floor(ez) >> 4)) return null;
+        if (w.getBlockAt((int) Math.floor(ex), (int) Math.floor(ey), (int) Math.floor(ez)).getType().isOccluding()) return "";
         RayTraceResult hit = w.rayTraceBlocks(new Location(w, ex, ey, ez), new Vector(dir.x(), dir.y(), dir.z()),
                 entityDist, FluidCollisionMode.NEVER, true);
         if (hit != null && hit.getHitBlock() != null) {
             double blockDist = hit.getHitPosition().distance(new Vector(ex, ey, ez));
             if (blockDist + 0.1 < entityDist) {
-                if (increaseBuffer(1.0) > 1.5) {
-                    flag("блок " + hit.getHitBlock().getType().name().toLowerCase() + " на " + Text.fmt(blockDist, 2)
-                            + ", цель на " + Text.fmt(entityDist, 2));
-                }
-                return;
+                return "блок " + hit.getHitBlock().getType().name().toLowerCase() + " на " + Text.fmt(blockDist, 2)
+                        + ", цель на " + Text.fmt(entityDist, 2);
             }
         }
-        decreaseBuffer(0.1);
+        return null;
     }
 }

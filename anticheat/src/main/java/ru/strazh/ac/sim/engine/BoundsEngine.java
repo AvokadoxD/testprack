@@ -46,6 +46,8 @@ public final class BoundsEngine implements SimulationEngine {
         double lastDx, lastDz;
         int glideTicks;
         boolean justReset;
+        /** Прошлый пакет был без позиции (старые клиенты не шлют позицию при движении < 0.03). */
+        boolean lastNoPosition;
     }
 
     private final StrazhPlugin plugin;
@@ -84,13 +86,21 @@ public final class BoundsEngine implements SimulationEngine {
         }
         if (!s.positionChanged()) {
             st.lastTick = s.clientTick();
+            st.lastNoPosition = true;
             return skip(r, "без позиции");
         }
+        boolean afterNoPosition = st.lastNoPosition;
+        st.lastNoPosition = false;
         if (!st.init || st.world != p.getWorld()) {
             reset(st, s, p.getWorld());
             return skip(r, "инициализация");
         }
         long gap = s.clientTick() - st.lastTick;
+        if (!s.sendsTickEnd() && afterNoPosition) {
+            // Клиент без ClientTickEnd копил мелкие смещения нескольких тиков в одном пакете.
+            st.lastDxz = Math.max(st.lastDxz, 0.03);
+            r.uncertainties.add(Uncertainty.SKIPPED_POSITION);
+        }
         if (s.sendsTickEnd() && gap > 1) {
             // Клиент не слал позицию несколько тиков (почти не двигался) — инерция почти нулевая.
             st.lastDxz = Math.min(st.lastDxz, 0.03);

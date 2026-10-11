@@ -29,9 +29,9 @@ public final class TickListener implements Listener {
         int tick = event.getTickNumber();
         boolean slow = tick % 20 == 0;
         for (PlayerData data : plugin.players().all()) {
+            data.drainMainQueue();
             Player p = data.player();
             if (p == null) continue;
-            data.drainMainQueue();
             plugin.simulation().processSetback(data);
             if (data.checks() != null) {
                 for (ServerTickCheck c : data.checks().serverTick) {

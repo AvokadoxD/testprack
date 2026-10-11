@@ -11,6 +11,6 @@ public final class WorldChecks {
     }
 
     public static final List<Class<? extends Check>> ALL = List.of(
-            BlockReachA.class, ScaffoldA.class, AirPlaceA.class, FastBreakA.class, NukerB.class
+            BlockReachA.class, ScaffoldA.class, AirPlaceA.class, FastBreakA.class, NukerB.class, GhostHandA.class
     );
 }
