@@ -71,6 +71,8 @@ public final class PlayerData {
 
     // ---- телепорты и навязанные повороты ----
     public volatile int invalidTeleportConfirms;
+    /** Эхо телепорта с позицией, не совпавшей с телепортом (PacketFly и т.п.). */
+    public volatile int teleportEchoMismatches;
     /** Распознанных эхо-пакетов навязанного поворота камеры. */
     public volatile int rotationEchoes;
     /**

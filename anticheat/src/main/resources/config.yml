@@ -27,6 +27,8 @@ messages:
   kick: "&cВы были отключены античитом.\n&7Причина: &f{check}"
 
 punishments:
+  # false — только алерты и логи, без наказаний (удобно первые дни для подстройки порогов)
+  enabled: true
   # Команды наказания по умолчанию. Плейсхолдеры: {player} {uuid} {check} {check_id} {category} {vl}
   # Встроенная команда "strazh kick" кикает с сообщением из messages.kick.
   default:

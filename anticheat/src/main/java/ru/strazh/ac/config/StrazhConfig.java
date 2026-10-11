@@ -39,6 +39,7 @@ public final class StrazhConfig {
     public final Map<Category, List<String>> punishCommands = new EnumMap<>(Category.class);
     public List<String> defaultPunishCommands;
     public int minPlaytimeSecondsForPunish;
+    public boolean punishEnabled;
     public boolean resetVlAfterPunish;
 
     // ---- логи ----
@@ -108,6 +109,7 @@ public final class StrazhConfig {
             if (!list.isEmpty()) punishCommands.put(c, list);
         }
         minPlaytimeSecondsForPunish = config.getInt("punishments.min-playtime-seconds", 0);
+        punishEnabled = config.getBoolean("punishments.enabled", true);
         resetVlAfterPunish = config.getBoolean("punishments.reset-vl-after-punish", true);
 
         logEnabled = config.getBoolean("logging.enabled", true);

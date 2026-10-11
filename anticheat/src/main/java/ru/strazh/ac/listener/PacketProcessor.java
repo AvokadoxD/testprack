@@ -413,13 +413,16 @@ public final class PacketProcessor implements PacketListener {
             TeleportTracker.Pending p = tp.awaitingEcho;
             tp.awaitingEcho = null;
             if (pos && rot) {
+                // Ванильный клиент сразу после подтверждения шлёт Full с новой позицией —
+                // это эхо телепорта даже при относительных координатах.
                 double ex = p.relX ? m.x + p.x : p.x;
                 double ey = p.relY ? m.y + p.y : p.y;
                 double ez = p.relZ ? m.z + p.z : p.z;
-                double tol = p.anyRelativePosition() ? 0.5 : 1.0E-4;
-                if (Math.abs(loc.getX() - ex) < tol && Math.abs(loc.getY() - ey) < tol && Math.abs(loc.getZ() - ez) < tol) {
-                    echo = p;
+                double tol = p.anyRelativePosition() ? 3.0 : 1.0E-4;
+                if (!(Math.abs(loc.getX() - ex) < tol && Math.abs(loc.getY() - ey) < tol && Math.abs(loc.getZ() - ez) < tol)) {
+                    data.teleportEchoMismatches++;
                 }
+                echo = p;
             }
         }
         boolean teleport = echo != null;

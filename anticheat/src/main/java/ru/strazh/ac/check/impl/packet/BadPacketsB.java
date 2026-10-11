@@ -58,6 +58,15 @@ public final class BadPacketsB extends Check implements PacketCheck, TickCheck {
     }
 
     @Override
+    public void onPacketSend(com.github.retrooper.packetevents.event.PacketSendEvent event) {
+        var t = event.getPacketType();
+        if (t == PacketType.Play.Server.HELD_ITEM_CHANGE || t == PacketType.Play.Server.RESPAWN
+                || t == PacketType.Play.Server.JOIN_GAME) {
+            lastSlot = -1;
+        }
+    }
+
+    @Override
     public void onClientTickEnd() {
         if (data.client().sendsTickEnd && changesThisTick == 2 && lastSlot == slotBeforeTick && !interactionAfterLastChange) {
             flag("A-B-A без действия, слот " + lastSlot);

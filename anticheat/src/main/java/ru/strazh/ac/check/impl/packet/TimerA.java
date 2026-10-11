@@ -62,7 +62,8 @@ public final class TimerA extends Check implements PacketCheck, TickCheck, Movem
         }
         double credit = (sent - lastSentNanos) / 1_000_000.0;
         lastSentNanos = sent;
-        balance = Math.min(maxBankMs, balance + credit - ticks * 50.0);
+        // +0.2% кредита — допуск на расхождение часов клиента и сервера в долгих сессиях.
+        balance = Math.min(maxBankMs, balance + credit * 1.002 - ticks * 50.0);
         ticks = 0;
         if (data.inVehicleRecently(0) && !data.client().sendsTickEnd) {
             balance = Math.max(balance, 0);

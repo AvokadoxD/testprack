@@ -52,7 +52,7 @@ public final class ViolationManager {
         }
         plugin.violationLog().log(data.name() + " " + check.displayName() + " vl=" + Text.fmt(vl, 2)
                 + " ping=" + Math.round(data.ping()) + " " + (details == null ? "" : details));
-        if (s.punish() && vl >= s.maxVl()) {
+        if (plugin.config().punishEnabled && s.punish() && vl >= s.maxVl()) {
             plugin.punishments().punish(data, check, vl);
         }
         return true;
