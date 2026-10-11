@@ -40,6 +40,7 @@ public final class StrazhConfig {
     public List<String> defaultPunishCommands;
     public int minPlaytimeSecondsForPunish;
     public boolean punishEnabled;
+    public int punishDelayMin, punishDelayMax;
     public boolean resetVlAfterPunish;
 
     // ---- логи ----
@@ -110,6 +111,8 @@ public final class StrazhConfig {
         }
         minPlaytimeSecondsForPunish = config.getInt("punishments.min-playtime-seconds", 0);
         punishEnabled = config.getBoolean("punishments.enabled", true);
+        punishDelayMin = Math.max(0, config.getInt("punishments.delay-seconds.min", 0));
+        punishDelayMax = Math.max(punishDelayMin, config.getInt("punishments.delay-seconds.max", 0));
         resetVlAfterPunish = config.getBoolean("punishments.reset-vl-after-punish", true);
 
         logEnabled = config.getBoolean("logging.enabled", true);

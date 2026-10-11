@@ -31,28 +31,47 @@ public final class PunishmentManager {
             return; // не наказываем дважды подряд за одну серию флагов
         }
         lastPunish.put(data.uuid(), now);
-        Bukkit.getScheduler().runTask(plugin, () -> execute(data, check, vl));
+        var cfg = plugin.config();
+        int delaySec = cfg.punishDelayMax <= 0 ? 0 : cfg.punishDelayMin
+                + java.util.concurrent.ThreadLocalRandom.current().nextInt(cfg.punishDelayMax - cfg.punishDelayMin + 1);
+        if (delaySec <= 0) {
+            Bukkit.getScheduler().runTask(plugin, () -> execute(data, check, vl));
+        } else {
+            // Отложенное наказание: разработчику чита сложнее понять, какой модуль палится.
+            lastPunish.put(data.uuid(), now + delaySec * 1000L);
+            plugin.alerts().broadcast("&7" + data.name() + " &8— наказание за &c" + check.displayName()
+                    + " &8через &f" + delaySec + " с");
+            Bukkit.getScheduler().runTaskLater(plugin, () -> execute(data, check, vl), delaySec * 20L);
+        }
     }
 
     private void execute(PlayerData data, Check check, double vl) {
         Player player = data.player();
-        if (player == null || !player.isOnline()) return;
+        boolean online = player != null && player.isOnline();
+        // Отложенное наказание выполняется и после выхода игрока (бан по нику/UUID работает офлайн).
+        if (!online && plugin.config().punishDelayMax <= 0) return;
+        String name = data.name();
+        String uuid = data.uuid().toString();
         var cfg = plugin.config();
         long playedSeconds = (System.currentTimeMillis() - data.client().joinMillis) / 1000;
         if (playedSeconds < cfg.minPlaytimeSecondsForPunish) return;
         List<String> commands = new ArrayList<>();
         for (String c : cfg.punishCommands(check.category(), check.settings())) {
-            commands.add(c.replace("{player}", player.getName())
-                    .replace("{uuid}", player.getUniqueId().toString())
+            commands.add(c.replace("{player}", name)
+                    .replace("{uuid}", uuid)
                     .replace("{check}", check.displayName())
                     .replace("{check_id}", check.id())
                     .replace("{category}", check.category().display())
                     .replace("{vl}", Text.fmt(vl, 1)));
         }
-        StrazhPunishEvent event = new StrazhPunishEvent(player, check.displayName(), vl, commands);
-        Bukkit.getPluginManager().callEvent(event);
-        if (event.isCancelled()) return;
-        for (String cmd : event.getCommands()) {
+        List<String> toRun = commands;
+        if (online) {
+            StrazhPunishEvent event = new StrazhPunishEvent(player, check.displayName(), vl, commands);
+            Bukkit.getPluginManager().callEvent(event);
+            if (event.isCancelled()) return;
+            toRun = event.getCommands();
+        }
+        for (String cmd : toRun) {
             String c = cmd.startsWith("/") ? cmd.substring(1) : cmd;
             try {
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), c);
@@ -60,10 +79,10 @@ public final class PunishmentManager {
                 plugin.getLogger().warning("Ошибка команды наказания '" + c + "': " + ex.getMessage());
             }
         }
-        plugin.alerts().broadcast("&c" + player.getName() + " &7наказан за &c" + check.displayName()
+        plugin.alerts().broadcast("&c" + name + " &7наказан за &c" + check.displayName()
                 + " &8(x" + Text.fmt(vl, 1) + ")");
-        plugin.violationLog().log("PUNISH " + player.getName() + " " + check.displayName() + " vl=" + Text.fmt(vl, 1)
-                + " cmds=" + event.getCommands());
+        plugin.violationLog().log("PUNISH " + name + " " + check.displayName() + " vl=" + Text.fmt(vl, 1)
+                + " cmds=" + toRun);
         if (cfg.resetVlAfterPunish) {
             check.resetVl();
         }
