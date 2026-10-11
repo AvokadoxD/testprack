@@ -80,6 +80,8 @@ public final class PlayerData {
      * silent-аура — углы своей цели.
      */
     public float lastEchoYaw, lastEchoPitch;
+    /** Последняя ротация из пакета движения до эха. */
+    public float lastEchoPrevYaw, lastEchoPrevPitch;
     public long lastEchoTick = -1000;
     public boolean lastEchoWasProbe;
     /** Эхо-зонд ждёт сравнения со следующим пакетом движения. */
@@ -93,6 +95,8 @@ public final class PlayerData {
     public volatile int joinServerTick;
     /** Игрок полностью загрузил мир (PlayerLoaded / первые пакеты движения). */
     public volatile boolean loaded;
+    /** Игрок мёртв (экран смерти) — главный поток выставляет по событиям. */
+    public volatile boolean dead;
 
     public PlayerData(StrazhPlugin plugin, User user) {
         this.plugin = plugin;

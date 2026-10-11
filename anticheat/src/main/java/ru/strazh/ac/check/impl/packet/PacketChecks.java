@@ -11,5 +11,9 @@ public final class PacketChecks {
     }
 
     public static final List<Class<? extends Check>> ALL = List.of(
+            BadPacketsA.class, BadPacketsB.class, BadPacketsC.class, BadPacketsD.class, BadPacketsE.class,
+            BadPacketsF.class, BadPacketsG.class, BadPacketsH.class, BadPacketsI.class, BadPacketsJ.class,
+            BadPacketsK.class, PacketOrderA.class, TransactionA.class, TransactionB.class, TransactionC.class,
+            TimerA.class, NoRotateA.class
     );
 }

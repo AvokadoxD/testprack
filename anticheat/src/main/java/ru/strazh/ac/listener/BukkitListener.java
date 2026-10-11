@@ -169,9 +169,16 @@ public final class BukkitListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
+    public void onDeath(org.bukkit.event.entity.PlayerDeathEvent event) {
+        PlayerData data = plugin.players().get(event.getEntity());
+        if (data != null) data.dead = true;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onRespawn(PlayerRespawnEvent event) {
         PlayerData data = plugin.players().get(event.getPlayer());
         if (data == null) return;
+        data.dead = false;
         data.sim().lastValid = event.getRespawnLocation().clone();
         data.exemptions().exempt("movement", 2000);
     }

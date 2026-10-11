@@ -541,6 +541,8 @@ public final class PacketProcessor implements PacketListener {
      */
     private Object[] handleRotationEcho(PlayerData data, Location loc, long tick, boolean probe) {
         MovementTracker m = data.movement();
+        data.lastEchoPrevYaw = m.yaw;
+        data.lastEchoPrevPitch = m.pitch;
         data.lastEchoYaw = loc.getYaw();
         data.lastEchoPitch = loc.getPitch();
         data.lastEchoTick = tick;

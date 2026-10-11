@@ -73,6 +73,8 @@ public final class TransactionManager {
     private volatile double smoothedRttMs = -1;
     private volatile long oldestInFlightNanos;
     private long lastPongNanos = System.nanoTime();
+    /** Время отправки последнего подтверждённого пинга (для таймера). */
+    private long lastConfirmedSentNanos;
     /** Клиентских тиков, полученных с момента последнего Pong. */
     private int clientTicksSincePong;
     private int invalidPongs;
@@ -149,6 +151,7 @@ public final class TransactionManager {
                 idToSeq.values().remove(e[0]);
             }
             if (e[0] == seq) {
+                lastConfirmedSentNanos = e[1];
                 double rtt = (now - e[1]) / 1_000_000.0;
                 lastRttMs = rtt;
                 rttWindow.add(rtt);
@@ -239,6 +242,11 @@ public final class TransactionManager {
 
     public boolean isConfirmed(long seq) {
         return seq <= lastConfirmedSeq;
+    }
+
+    /** Время отправки последнего подтверждённого пинга (System.nanoTime), 0 — нет. */
+    public long lastConfirmedSentNanos() {
+        return lastConfirmedSentNanos;
     }
 
     public double lastRttMs() {
