@@ -41,7 +41,7 @@ public final class AutoClickerA extends Check implements PacketCheck, TickCheck 
 
     @Override
     protected void onReload() {
-        maxCps = cfg("max-cps", 22);
+        maxCps = cfg("max-cps", 25);
     }
 
     @Override

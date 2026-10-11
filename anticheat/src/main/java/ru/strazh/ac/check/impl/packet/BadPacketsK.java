@@ -30,6 +30,7 @@ public final class BadPacketsK extends Check implements MovementCheck, TickCheck
     @Override
     public void onClientTickEnd() {
         if (!data.client().sendsTickEnd || !data.loaded || data.dead || data.inVehicleRecently(20)
+                || data.abilities().isSpectator()
                 || data.teleports().hasPending()) {
             ticksWithoutPosition = 0;
             return;

@@ -109,7 +109,12 @@ final class OutgoingProcessor {
                 GameMode gm = w.getGameMode();
                 long post = tx.nextPostSeq();
                 data.abilities().pendingChange = true;
+                data.loaded = false;
                 tx.runOnConfirm(post, () -> {
+                    data.loaded = false;
+                    data.actions().inventoryOpen = false;
+                    data.actions().containerOpen = false;
+                    data.actions().openWindowId = -1;
                     data.entities().clear();
                     data.vehicle().clientVehicleId = -1;
                     data.vehicle().changePending = false;

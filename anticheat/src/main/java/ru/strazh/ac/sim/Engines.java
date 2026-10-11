@@ -14,6 +14,6 @@ public final class Engines {
     }
 
     public static HoneypotManager createHoneypots(StrazhPlugin plugin) {
-        return new HoneypotManager(plugin);
+        return new ru.strazh.ac.honeypot.HoneypotService(plugin);
     }
 }

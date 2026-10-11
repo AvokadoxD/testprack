@@ -245,12 +245,12 @@ public final class BukkitListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlaceMonitor(BlockPlaceEvent event) {
         markBlockChange(event.getBlock().getLocation());
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onBreakMonitor(BlockBreakEvent event) {
         markBlockChange(event.getBlock().getLocation());
     }

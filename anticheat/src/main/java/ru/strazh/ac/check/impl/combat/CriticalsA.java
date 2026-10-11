@@ -53,8 +53,8 @@ public final class CriticalsA extends Check implements CombatCheck, MovementChec
     @Override
     public void onAttackPacket(AttackUpdate a) {
         if (!airborne || data.movement().onGround || a.inVehicle) return;
-        if (airMoves <= 3 && takeoffDy > 0 && takeoffDy < 0.15 && peak < 0.15
-                && !data.movement().horizontalCollision) {
+        if (airMoves >= 2 && airMoves <= 3 && takeoffDy > 0 && takeoffDy < 0.15 && peak < 0.15
+                && data.movement().deltaY < 0 && !data.movement().horizontalCollision) {
             if (increaseBuffer(1.0) > 2.0) {
                 flag("подскок " + Text.fmt(takeoffDy, 4) + " пик " + Text.fmt(peak, 4) + " тиков " + airMoves);
             }

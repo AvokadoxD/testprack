@@ -39,7 +39,7 @@ public final class InventoryE extends Check implements PacketCheck {
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
         long since = data.movement().clientTick - popTick;
-        if (since > 4) return;
+        if (since > 2) return;
         boolean offhandSwap = false;
         if (event.getPacketType() == PacketType.Play.Client.CLICK_WINDOW) {
             WrapperPlayClientClickWindow w = new WrapperPlayClientClickWindow(event);

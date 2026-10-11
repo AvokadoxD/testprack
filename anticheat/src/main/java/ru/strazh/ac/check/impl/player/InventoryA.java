@@ -50,6 +50,7 @@ public final class InventoryA extends Check implements PacketCheck {
             default -> {
             }
         }
+        if (!act.inventoryOpen) playerInventoryOpen = false;
         boolean open = act.containerOpen || playerInventoryOpen;
         if (!open || data.inVehicleRecently(5)) return;
         String what = switch (t) {

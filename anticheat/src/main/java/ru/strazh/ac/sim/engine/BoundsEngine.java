@@ -90,7 +90,9 @@ public final class BoundsEngine implements SimulationEngine {
         st.lastTick = s.clientTick();
 
         double scale = attr(p, Attribute.SCALE, 1.0);
-        double width = 0.6 * scale, height = 1.8 * scale;
+        double width = 0.6 * scale;
+        // Высота по текущей позе (присед 1.5, ползком/плавание 0.6) — с учётом масштаба.
+        double height = Math.max(0.6 * scale, p.getHeight());
         AABB before = AABB.ofEntity(s.lastX(), s.lastY(), s.lastZ(), width, height);
         AABB now = AABB.ofEntity(s.x(), s.y(), s.z(), width, height);
         WorldScan env = WorldScan.scan(p.getWorld(), before.union(now), now);
@@ -283,7 +285,12 @@ public final class BoundsEngine implements SimulationEngine {
         r.noGroundSpoof = st.noGroundTicks >= 4;
 
         // ---- вход в блок ----
-        if (!r.has(Uncertainty.BLOCK_CHANGE) && !r.has(Uncertainty.PISTON) && env.newlyInsideSolid(now, before)) {
+        // Для прохода сквозь блоки берём минимальную позу (ползком): смена позы
+        // на сервере запаздывает, а горизонтальные проходы в стены ловятся и так.
+        AABB lowNow = AABB.ofEntity(s.x(), s.y(), s.z(), width, 0.6 * scale);
+        AABB lowBefore = AABB.ofEntity(s.lastX(), s.lastY(), s.lastZ(), width, 0.6 * scale);
+        if (!r.has(Uncertainty.BLOCK_CHANGE) && !r.has(Uncertainty.PISTON) && !entityPush
+                && env.newlyInsideSolid(lowNow, lowBefore)) {
             r.phase = true;
         }
 
