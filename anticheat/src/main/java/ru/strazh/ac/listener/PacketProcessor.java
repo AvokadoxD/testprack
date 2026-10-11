@@ -528,7 +528,7 @@ public final class PacketProcessor implements PacketListener {
                 data.velocity().hasPending(confirmed),
                 echo, teleportPending, inVehicle,
                 ab.flying, ab.allowFlight, ab.gameMode, ab.flySpeed, ab.pendingChange,
-                data.client().sendsTickEnd);
+                data.client().sendsTickEnd, a.lastAttackTick);
         data.queueMain(d -> plugin.simulation().handle(d, snapshot));
 
         return new Object[]{rotationUpdate, moveUpdate};

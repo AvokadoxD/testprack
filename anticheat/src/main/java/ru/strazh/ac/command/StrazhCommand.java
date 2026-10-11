@@ -25,7 +25,7 @@ import java.util.Map;
 public final class StrazhCommand implements CommandExecutor, TabCompleter {
 
     private static final List<String> SUBS = List.of(
-            "alerts", "verbose", "info", "vl", "exempt", "unexempt", "resetvl", "checks", "top", "reload", "kick", "help");
+            "alerts", "verbose", "info", "vl", "debug", "exempt", "unexempt", "resetvl", "checks", "top", "reload", "kick", "help");
 
     private final StrazhPlugin plugin;
 
@@ -63,6 +63,16 @@ public final class StrazhCommand implements CommandExecutor, TabCompleter {
                 msg(sender, on ? "&aПодробный режим: все флаги без задержки." : "&7Подробный режим выключен.");
             }
             case "info", "vl" -> info(sender, args);
+            case "debug" -> {
+                if (!(sender instanceof Player viewer)) {
+                    msg(sender, "&cТолько для игроков.");
+                    return true;
+                }
+                PlayerData d = target(sender, args, 1);
+                if (d == null || d.player() == null) return true;
+                boolean on = plugin.simulation().toggleDebug(viewer, d.player());
+                msg(sender, on ? "&aОтладка движения " + d.name() + " — в action bar." : "&7Отладка выключена.");
+            }
             case "exempt" -> exempt(sender, args);
             case "unexempt" -> {
                 PlayerData d = target(sender, args, 1);
@@ -126,6 +136,7 @@ public final class StrazhCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage(Text.color(" &c/strazh alerts &7— вкл/выкл алерты"));
                 sender.sendMessage(Text.color(" &c/strazh verbose &7— все флаги без задержки"));
                 sender.sendMessage(Text.color(" &c/strazh info <игрок> &7— клиент, пинг, нарушения"));
+                sender.sendMessage(Text.color(" &c/strazh debug <игрок> &7— расчёты движения в action bar"));
                 sender.sendMessage(Text.color(" &c/strazh exempt <игрок> <секунд|0> [all|категория|проверка] &7— исключение"));
                 sender.sendMessage(Text.color(" &c/strazh unexempt <игрок> [ключ] &7— снять исключение"));
                 sender.sendMessage(Text.color(" &c/strazh resetvl <игрок> &7— сбросить нарушения"));

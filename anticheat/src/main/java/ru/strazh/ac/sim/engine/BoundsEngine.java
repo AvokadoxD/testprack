@@ -43,6 +43,9 @@ public final class BoundsEngine implements SimulationEngine {
         boolean wasInLiquid, wasInWeb, wasClimbing;
         int noGroundTicks;
         long resetTick;
+        double lastDx, lastDz;
+        int glideTicks;
+        boolean justReset;
     }
 
     private final StrazhPlugin plugin;
@@ -61,6 +64,11 @@ public final class BoundsEngine implements SimulationEngine {
 
         // ---- полный пропуск ----
         String skip = skipReason(data, p, s);
+        if ("элитры".equals(skip) && st.init && st.world == p.getWorld() && s.teleportEcho() == null && !s.teleportPending()) {
+            elytra(data, p, s, st, r);
+            return skip(r, skip);
+        }
+        st.glideTicks = 0;
         if (skip != null) {
             reset(st, s, p.getWorld());
             if (s.teleportEcho() != null) {
@@ -69,6 +77,8 @@ public final class BoundsEngine implements SimulationEngine {
                 // Инерция продолжается от реального движения (после элитр, транспорта и т.п.).
                 st.lastDxz = s.deltaXZ();
                 st.lastDy = s.deltaY();
+                st.lastDx = s.deltaX();
+                st.lastDz = s.deltaZ();
             }
             return skip(r, skip);
         }
@@ -227,6 +237,12 @@ public final class BoundsEngine implements SimulationEngine {
             r.offsetY = offset;
         } else {
             r.offsetY = 0;
+            // Лестницы/лианы: подъём не быстрее ванильных 0.1176 (или остатка прыжка).
+            if (env.climbable && st.wasClimbing && !st.serverGround && !env.liquid && !env.scaffolding && !env.bubble
+                    && Double.isNaN(velY) && !s.velocityPending() && !entityPush) {
+                double allowedClimb = Math.max(0.1176000022888184, MovementModel.nextFallDy(st.lastDy, gravity));
+                r.fastClimb = dy > allowedClimb + 0.005;
+            }
         }
 
         // ---- горизонталь ----
@@ -270,6 +286,38 @@ public final class BoundsEngine implements SimulationEngine {
         r.offsetXZ = dxz - allowed;
         r.offset = Math.max(r.offsetXZ, Math.abs(r.offsetY));
 
+        // ---- направление ускорения относительно клавиш (только 1.21.2+, где клавиши известны) ----
+        boolean strafeOk = s.hasInput() && s.sendsTickEnd() && gap == 1 && !st.justReset
+                && !env.liquid && !st.wasInLiquid && !env.climbable && !st.wasClimbing && !env.web && !st.wasInWeb
+                && !env.wall && !s.horizontalCollision() && !env.soul && !env.honey && !env.powderSnow && !env.scaffolding
+                && !env.slime && !entityPush && s.velocities().isEmpty() && !s.velocityPending()
+                && !(sneaking && groundStart) && s.clientTick() - s.lastAttackTick() > 1
+                && !r.has(Uncertainty.ABILITIES) && !r.has(Uncertainty.BLOCK_CHANGE) && !r.has(Uncertainty.PISTON);
+        if (strafeOk) {
+            double cx = st.lastDx * st.lastFriction, cz = st.lastDz * st.lastFriction;
+            if (Math.abs(cx) < 0.003) cx = 0;
+            if (Math.abs(cz) < 0.003) cz = 0;
+            if (sprintJump) {
+                float yr = s.yaw() * ru.strazh.ac.util.McMath.DEG_TO_RAD;
+                cx -= ru.strazh.ac.util.McMath.sin(yr) * MovementModel.SPRINT_JUMP_BOOST;
+                cz += ru.strazh.ac.util.McMath.cos(yr) * MovementModel.SPRINT_JUMP_BOOST;
+            }
+            double ax = dx - cx, az = dz - cz;
+            double acc = Math.sqrt(ax * ax + az * az);
+            Vec3 exp = ru.strazh.ac.util.McMath.inputVector(s.strafeInput(), 0, s.forwardInput(), 1f, s.yaw());
+            double expLen = exp.horizontalLength();
+            r.strafeChecked = true;
+            r.strafeAccel = acc;
+            if (expLen < 1.0E-6) {
+                r.strafeError = acc > 0.02 ? 180.0 : 0.0;
+            } else if (acc < 0.015) {
+                r.strafeError = 0.0;
+            } else {
+                double cos = (ax * exp.x() + az * exp.z()) / (acc * expLen);
+                r.strafeError = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, cos))));
+            }
+        }
+
         // ---- опора ----
         boolean unsureGround = env.contextualBelow || r.has(Uncertainty.BLOCK_CHANGE) || r.has(Uncertainty.PISTON)
                 || entityPush || r.has(Uncertainty.SCAFFOLDING);
@@ -298,6 +346,9 @@ public final class BoundsEngine implements SimulationEngine {
         st.lastFriction = (env.liquid ? 0.8 : MovementModel.frictionFactor(groundStart, st.slipperiness));
         st.lastDxz = dxz;
         st.lastDy = dy;
+        st.lastDx = dx;
+        st.lastDz = dz;
+        st.justReset = false;
         st.serverGround = env.groundBelow || (s.onGround() && unsureGround);
         st.slipperiness = env.slipperiness;
         st.wasInLiquid = env.liquid;
@@ -331,12 +382,85 @@ public final class BoundsEngine implements SimulationEngine {
         st.lastTick = s.clientTick();
         st.lastDxz = s.teleportEcho() != null ? s.teleportEcho().deltaMovement.horizontalLength() : 0;
         st.lastDy = s.teleportEcho() != null ? s.teleportEcho().deltaMovement.y() : 0;
+        st.lastDx = s.teleportEcho() != null ? s.teleportEcho().deltaMovement.x() : 0;
+        st.lastDz = s.teleportEcho() != null ? s.teleportEcho().deltaMovement.z() : 0;
+        st.justReset = true;
         st.lastFriction = MovementModel.FRICTION_AIR;
         st.serverGround = s.onGround();
         st.noGroundTicks = 0;
         st.wasInLiquid = true; // после сброса первый тик мягкий
         st.wasClimbing = false;
         st.resetTick = s.clientTick();
+    }
+
+    /**
+     * Полёт на элитрах без фейерверков детерминирован: скорость тика =
+     * updateFallFlyingMovement(прошлая скорость) с ротацией этого тика.
+     */
+    private void elytra(PlayerData data, Player p, MoveSnapshot s, State st, SimulationResult r) {
+        long now = System.currentTimeMillis();
+        boolean prevValid = st.glideTicks >= 2 && s.clientTick() - st.lastTick == 1;
+        st.glideTicks++;
+        st.lastTick = s.clientTick();
+        if (!s.positionChanged()) return;
+        double dx = s.deltaX(), dy = s.deltaY(), dz = s.deltaZ();
+        double ping = Math.max(50, data.ping());
+        boolean clean = prevValid && p.isGliding() && now - data.lastGlideToggleMillis > 500
+                && now - data.lastElytraBoostMillis > 3500 + ping && now - data.lastRiptideMillis > 3000
+                && now - data.lastEffectChangeMillis > ping + 400 && now - data.lastDamageMillis > 500
+                && s.velocities().isEmpty() && !s.velocityPending() && !data.vehicle().inVehicle();
+        if (clean) {
+            double scale = attr(p, Attribute.SCALE, 1.0);
+            AABB before = AABB.ofEntity(s.lastX(), s.lastY(), s.lastZ(), 0.6 * scale, 0.6 * scale);
+            AABB box = AABB.ofEntity(s.x(), s.y(), s.z(), 0.6 * scale, 0.6 * scale);
+            WorldScan env = WorldScan.scan(p.getWorld(), before.union(box), box);
+            boolean free = !env.unloaded && !env.liquid && !env.wall && !env.groundBelow && !env.ceiling
+                    && !env.climbable && !env.web && !env.bubble && p.getNearbyEntities(1.5, 1.5, 1.5).isEmpty();
+            if (free) {
+                double vx = st.lastDx, vy = st.lastDy, vz = st.lastDz;
+                if (Math.abs(vx) < 0.003) vx = 0;
+                if (Math.abs(vy) < 0.003) vy = 0;
+                if (Math.abs(vz) < 0.003) vz = 0;
+                double g = attr(p, Attribute.GRAVITY, 0.08);
+                if (vy <= 0 && p.getPotionEffect(PotionEffectType.SLOW_FALLING) != null) g = Math.min(g, 0.01);
+                Vec3 look = ru.strazh.ac.util.McMath.viewVector(s.pitch(), s.yaw());
+                float f = s.pitch() * ru.strazh.ac.util.McMath.DEG_TO_RAD;
+                double d = Math.sqrt(look.x() * look.x() + look.z() * look.z());
+                double e = Math.sqrt(vx * vx + vz * vz);
+                double h = Math.cos(f) * Math.cos(f);
+                vy += g * (-1.0 + h * 0.75);
+                if (vy < 0.0 && d > 0.0) {
+                    double i = vy * -0.1 * h;
+                    vx += look.x() * i / d;
+                    vy += i;
+                    vz += look.z() * i / d;
+                }
+                if (f < 0.0F && d > 0.0) {
+                    double i = e * (-ru.strazh.ac.util.McMath.sin(f)) * 0.04;
+                    vx += -look.x() * i / d;
+                    vy += i * 3.2;
+                    vz += -look.z() * i / d;
+                }
+                if (d > 0.0) {
+                    vx += (look.x() / d * e - vx) * 0.1;
+                    vz += (look.z() / d * e - vz) * 0.1;
+                }
+                vx *= 0.99F;
+                vy *= 0.98F;
+                vz *= 0.99F;
+                Vec3 predicted = new Vec3(vx, vy, vz);
+                r.elytraChecked = true;
+                r.elytraPredicted = predicted;
+                r.elytraOffset = predicted.distance(new Vec3(dx, dy, dz));
+                r.actual = new Vec3(dx, dy, dz);
+            }
+        }
+        st.lastDx = dx;
+        st.lastDy = dy;
+        st.lastDz = dz;
+        st.lastDxz = Math.sqrt(dx * dx + dz * dz);
+        st.serverGround = false;
+        st.lastFriction = MovementModel.FRICTION_AIR;
     }
 
     private static SimulationResult skip(SimulationResult r, String reason) {

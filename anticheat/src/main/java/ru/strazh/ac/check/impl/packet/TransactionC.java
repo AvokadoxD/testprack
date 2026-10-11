@@ -44,8 +44,12 @@ public final class TransactionC extends Check implements PacketCheck {
         double kernelGap = tx.pongOverKernelMs();
         double ka = data.keepAlivePingMs;
         String reason = null;
+        boolean kaFresh = ka >= 0 && System.nanoTime() - data.lastKeepAliveResponseNanos < 20_000_000_000L;
         if (kernelGap >= 0 && tx.kernelRttMs() >= 0 && kernelGap > threshold) {
             reason = "pong-kernel=" + Math.round(kernelGap) + " мс";
+        } else if (kaFresh && ka - pong > threshold + 150) {
+            // Обратный PingSpoof: KeepAlive придерживают, чтобы казаться «лагающим».
+            reason = "keepalive-pong=" + Math.round(ka - pong) + " мс";
         } else if (ka >= 0 && pong - ka > threshold + 50
                 && System.nanoTime() - data.lastKeepAliveResponseNanos < 20_000_000_000L) {
             reason = "pong-keepalive=" + Math.round(pong - ka) + " мс";

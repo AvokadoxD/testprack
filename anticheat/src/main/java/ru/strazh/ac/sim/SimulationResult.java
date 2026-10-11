@@ -79,6 +79,25 @@ public final class SimulationResult {
     /** Блок над головой. */
     public boolean ceiling;
 
+    // ---- направление ускорения относительно клавиш (1.21.2+) ----
+    /** Проверялось ли направление ускорения в этом тике. */
+    public boolean strafeChecked;
+    /** Модуль ускорения тика (фактическое смещение минус инерция). */
+    public double strafeAccel;
+    /** Угол между ускорением и направлением нажатых клавиш, градусы (180 — ускорение без клавиш). */
+    public double strafeError;
+
+    // ---- лестницы ----
+    /** Подъём по лестнице/лианам быстрее ванильного. */
+    public boolean fastClimb;
+
+    // ---- элитры ----
+    /** Полёт на элитрах предсказывался (без фейерверков и помех). */
+    public boolean elytraChecked;
+    /** Расхождение фактического смещения с ванильной физикой элитр. */
+    public double elytraOffset;
+    public Vec3 elytraPredicted = Vec3.ZERO;
+
     public SimulationResult(MoveSnapshot snapshot) {
         this.snapshot = snapshot;
     }

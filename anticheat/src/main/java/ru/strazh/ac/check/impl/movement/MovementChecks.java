@@ -11,6 +11,7 @@ public final class MovementChecks {
     }
 
     public static final List<Class<? extends Check>> ALL = List.of(
-            SpeedA.class, NoSlowA.class, FlyA.class, FlyB.class, NoFallA.class, PhaseA.class, VelocityA.class
+            SpeedA.class, NoSlowA.class, FlyA.class, FlyB.class, NoFallA.class, PhaseA.class, VelocityA.class,
+            StrafeA.class, ClimbA.class, ElytraA.class, VehicleA.class, SprintA.class
     );
 }

@@ -39,7 +39,8 @@ public record MoveSnapshot(
         boolean teleportPending,
         boolean inVehicle,
         boolean flying, boolean allowFlight, int gameMode, float flySpeed, boolean abilitiesUncertain,
-        boolean sendsTickEnd
+        boolean sendsTickEnd,
+        long lastAttackTick
 ) {
 
     public double deltaX() {
