@@ -25,7 +25,7 @@ import ru.strazh.ac.util.Vec3;
  * Движок движения на «модели границ»: для каждого пакета движения считает
  * верхнюю границу горизонтальной скорости и ожидаемое вертикальное смещение по
  * физике 1.21, проверяет опору под ногами и вход в блоки. Неопределённые
- * ситуации (транспорт, полёт, элитры, тризубец, левитация, жидкости, поршни,
+ * ситуации (транспорт, полёт, элитры, тризубец, жидкости, поршни,
  * толкание сущностями, свежие изменения блоков, эффекты/атрибуты в пути)
  * помечаются, и проверки в них не флагают.
  */
@@ -210,9 +210,13 @@ public final class BoundsEngine implements SimulationEngine {
         r.jumped = jumped;
         boolean verticalChecked = !env.liquid && !st.wasInLiquid && !env.climbable && !st.wasClimbing && !env.web
                 && !env.powderSnow && !env.bubble && !env.honey && !env.scaffolding && !env.slime && !env.bed
-                && !entityPush && p.getPotionEffect(PotionEffectType.LEVITATION) == null;
+                && !entityPush;
+        PotionEffect levitation = p.getPotionEffect(PotionEffectType.LEVITATION);
+        r.levitation = levitation != null;
         if (verticalChecked) {
-            double fall = MovementModel.nextFallDy(st.serverGround ? 0.0 : st.lastDy, gravity);
+            double fall = levitation != null
+                    ? MovementModel.nextLevitationDy(st.serverGround ? 0.0 : st.lastDy, levitation.getAmplifier())
+                    : MovementModel.nextFallDy(st.serverGround ? 0.0 : st.lastDy, gravity);
             double best = fall;
             double bestErr = Math.abs(dy - fall);
             if (st.serverGround) {
@@ -381,7 +385,6 @@ public final class BoundsEngine implements SimulationEngine {
         if (p.isGliding() || System.currentTimeMillis() - data.lastGlideToggleMillis < 1000) return "элитры";
         if (p.isRiptiding() || System.currentTimeMillis() - data.lastRiptideMillis < 3000) return "тризубец";
         if (System.currentTimeMillis() - data.lastElytraBoostMillis < 3000) return "фейерверк";
-        if (p.getPotionEffect(PotionEffectType.LEVITATION) != null) return "левитация";
         if (data.isFullyExempt()) return "исключение";
         return null;
     }

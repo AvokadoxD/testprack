@@ -59,6 +59,16 @@ public final class MovementModel {
         return (v - gravity) * DRAG_Y;
     }
 
+    /**
+     * Вертикаль под левитацией: скорость стремится к 0.05 · (уровень + 1) с
+     * коэффициентом 0.2, гравитация не действует (LivingEntity.travelInAir).
+     */
+    public static double nextLevitationDy(double lastDy, int amplifier) {
+        double v = lastDy;
+        if (Math.abs(v) < 0.003) v = 0.0;
+        return (v + (0.05 * (amplifier + 1) - v) * 0.2) * DRAG_Y;
+    }
+
     /** Сила прыжка: атрибут jump_strength · множитель блока + 0.1 · уровень прыгучести. */
     public static double jumpPower(double jumpStrength, double blockJumpFactor, int jumpBoostLevel) {
         return jumpStrength * blockJumpFactor + (jumpBoostLevel > 0 ? 0.1 * jumpBoostLevel : 0.0);

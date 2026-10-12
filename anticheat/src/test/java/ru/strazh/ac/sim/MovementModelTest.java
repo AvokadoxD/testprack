@@ -56,4 +56,17 @@ class MovementModelTest {
         double dy = MovementModel.nextFallDy(-0.5, 0.01);
         assertEquals((-0.5 - 0.01) * 0.98, dy, 1e-12);
     }
+
+    /** Левитация I: от покоя 0.0098, затем 0.0174832…, предел 0.05·0.98/(1 − 0.8·0.98). */
+    @Test
+    void levitationApproachesTerminalSpeed() {
+        double dy = MovementModel.nextLevitationDy(0.0, 0);
+        assertEquals(0.0098, dy, 1e-12);
+        dy = MovementModel.nextLevitationDy(dy, 0);
+        assertEquals((0.0098 + (0.05 - 0.0098) * 0.2) * 0.98, dy, 1e-12);
+        for (int i = 0; i < 200; i++) dy = MovementModel.nextLevitationDy(dy, 0);
+        assertEquals(0.05 * 0.2 * 0.98 / (1 - 0.8 * 0.98), dy, 1e-9);
+        // Падение вниз под левитацией гасится к подъёму.
+        assertTrue(MovementModel.nextLevitationDy(-0.5, 0) > -0.5);
+    }
 }

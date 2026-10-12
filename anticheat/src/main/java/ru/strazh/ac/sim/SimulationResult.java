@@ -74,6 +74,8 @@ public final class SimulationResult {
     public boolean phase;
     /** Использует предмет / крадётся (по серверу и вводу). */
     public boolean usingItem, sneaking;
+    /** Действует левитация (вертикаль считается по её формуле). */
+    public boolean levitation;
     /** Горизонтальное столкновение со стеной (по коллизиям). */
     public boolean wallCollision;
     /** Блок над головой. */

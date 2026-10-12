@@ -11,6 +11,6 @@ public final class AimChecks {
     }
 
     public static final List<Class<? extends Check>> ALL = List.of(
-            AimA.class, AimB.class, AimC.class, AimD.class, AimE.class
+            AimA.class, AimB.class, AimC.class, AimD.class, AimE.class, AimF.class
     );
 }
